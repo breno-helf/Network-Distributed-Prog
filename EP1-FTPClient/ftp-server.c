@@ -61,6 +61,7 @@ int main (int argc, char **argv) {
    char  command[4];
    char  args[MAXDATASIZE];
    Response *res = malloc(sizeof(Response));
+   Connection *conn = malloc(sizeof(Connection));
    /* Armazena o tamanho da string lida do cliente */
    ssize_t  n;
 
@@ -163,30 +164,42 @@ int main (int argc, char **argv) {
 
 
          // Making first contact and waiting for login
+         conn->socket_id = connfd;
          write(connfd, first_contact, strlen(first_contact));
-         while ((n=read(connfd, recvline, MAXLINE)) > 0) {
+         for (;;) {
+            read(connfd, recvline, MAXLINE);
             parse_ftp_command(recvline, &command, &arg);
             if (strcmp(command, "USER") != 0) {
-               perror("You must first use USER command then PASS to authenticate\n");
+               perror("You must first use USER command then PASS to authenticate!\n");
                continue;
             }
-            handle_command(command, arg, res);
+            handle_command(command, arg, res, conn);
             if (res->error != 0) {
                perror(res->msg);
                continue;
             }
-
-            printf(res->msg);
+            puts(res->msg);
             
-            char *username = malloc(sizeof(char) * strlen(arg));
-            strcpy(username, arg);
+            conn->username = malloc(sizeof(char) * strlen(arg));
+            strcpy(conn->username, arg);
             
             read(connfd, recvline, MAXLINE);
             parse_ftp_command(recvline, &command, &arg);
             if (strcmp(command, "PASS") != 0) {
-               perror("You must first use USER command then PASS to authenticate\n");
+               perror("After USER command you must use PASSto authenticate!\n");
+               free(conn->username);
                continue;               
             }
+            
+            handle_command(command, arg, res, conn);
+            if (res->error != 0) {
+               perror(res->msg);
+               free(conn->username);
+               continue;
+            }
+            puts(res->msg);
+            
+            break;
          }
          
          while ((n=read(connfd, recvline, MAXLINE)) > 0) {

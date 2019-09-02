@@ -24,11 +24,22 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
 
 void command_USER(char *arg, Response *res, Connection *conn) {
    if (arg == NULL) {
-      sprintf(res->msg, "500 USER: command requires a parameter\n");
-      res->error = 0;
+      sprintf(res->msg, "500 USER: command requires a parameter");
+      res->error = 1;
       return;
    }
    
-   sprintf(res->msg, "331 Password required for %s\n", arg);
+   sprintf(res->msg, "331 Password required for %s", arg);
    res->error = 0;
+}
+
+void command_PASS(char *arg, Response *res, Connection *conn) {
+   if (arg == NULL) {
+      sprintf(res->msg, "500 PASS: command requires a parameter");
+      res->error = 1;
+      return;      
+   }
+
+   sprintf(res->msg, "230 User %s logged in", arg);
+   res->error = 0;   
 }
