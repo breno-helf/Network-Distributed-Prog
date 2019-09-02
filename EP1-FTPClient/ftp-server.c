@@ -42,8 +42,13 @@
 #include "utils.h"
 
 /* Simple function to parse a FTP command line */
-void parse_ftp_command(char *line, char **command, char **arg) {
-   sscanf(line, "%s %s", *command, *arg);
+void parse_ftp_command(char *line, char *command, char *arg) {
+   sscanf(line, "%s %s", command, arg);
+}
+
+void client_error(int connfd, char *msg) {
+   write(connfd, msg, strlen(msg));
+   fprintf(stderr, "[Client %d] - ERROR: %s\n", connfd, msg);
 }
 
 int main (int argc, char **argv) {
@@ -58,8 +63,8 @@ int main (int argc, char **argv) {
    pid_t childpid;
    /* Armazena linhas recebidas do cliente */
    char  recvline[MAXLINE + 1];
-   char  command[4];
-   char  args[MAXDATASIZE];
+   char *command = malloc(sizeof(char) * MAXSTRINGSIZE);
+   char *arg = malloc(sizeof(char) * MAXSTRINGSIZE);
    Response *res = malloc(sizeof(Response));
    Connection *conn = malloc(sizeof(Connection));
    /* Armazena o tamanho da string lida do cliente */
@@ -163,57 +168,66 @@ int main (int argc, char **argv) {
           * para que este servidor consiga interpretar comandos FTP   */
 
 
-         // Making first contact and waiting for login
+         /* Making first contact and waiting for login */
          conn->socket_id = connfd;
          write(connfd, first_contact, strlen(first_contact));
          for (;;) {
-            read(connfd, recvline, MAXLINE);
-            parse_ftp_command(recvline, &command, &arg);
-            if (strcmp(command, "USER") != 0) {
-               perror("You must first use USER command then PASS to authenticate!\n");
+            n = read(connfd, recvline, MAXLINE);
+            recvline[n] = '\0';
+            parse_ftp_command(recvline, command, arg);
+            
+            if (strcmp(command, "USER") != 0 && strcmp(command, "QUIT") != 0) {
+               client_error(connfd, "You must first use USER to authenticate!\n");
                continue;
             }
+
             handle_command(command, arg, res, conn);
             if (res->error != 0) {
-               perror(res->msg);
+               client_error(connfd, res->msg);
+               free(res->msg);
                continue;
             }
-            puts(res->msg);
-            
-            conn->username = malloc(sizeof(char) * strlen(arg));
-            strcpy(conn->username, arg);
-            
-            read(connfd, recvline, MAXLINE);
-            parse_ftp_command(recvline, &command, &arg);
-            if (strcmp(command, "PASS") != 0) {
-               perror("After USER command you must use PASSto authenticate!\n");
+            write(connfd, res->msg, strlen(res->msg));
+                        
+            n = read(connfd, recvline, MAXLINE);
+            recvline[n] = '\0';
+            parse_ftp_command(recvline, command, arg);
+            if (strcmp(command, "PASS") != 0 && strcmp(command, "QUIT") != 0) {
+               client_error(connfd, "After USER command you must use PASS to authenticate!\n");
                free(conn->username);
                continue;               
             }
             
             handle_command(command, arg, res, conn);
             if (res->error != 0) {
-               perror(res->msg);
+               client_error(connfd, res->msg);
+               free(res->msg);
                free(conn->username);
                continue;
             }
-            puts(res->msg);
-            
+            write(connfd, res->msg, strlen(res->msg));            
+
             break;
          }
-         
+
+         /* User authenticated, listening to other calls */
          while ((n=read(connfd, recvline, MAXLINE)) > 0) {
-            recvline[n]=0;
+            recvline[n]='\0';
             printf("[Cliente conectado no processo filho %d enviou:] ",getpid());
             if ((fputs(recvline,stdout)) == EOF) {
                perror("fputs :( \n");
                exit(6);
             }
 
-            sscanf(recvline, "%s %s", command, arg);
-            printf("command = %s, arg = %s\n", command, arg);
+            parse_ftp_command(recvline, command, arg);
+            handle_command(command, arg, res, conn);
+            if (res->error != 0) {
+               client_error(connfd, res->msg);
+               free(res->msg);
+               continue;
+            }
+            write(connfd, res->msg, strlen(res->msg));            
             
-            write(connfd, recvline, strlen(recvline));
          }
          /* ========================================================= */
          /* ========================================================= */
