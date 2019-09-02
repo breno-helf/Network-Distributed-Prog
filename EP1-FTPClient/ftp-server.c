@@ -41,6 +41,11 @@
 #include <unistd.h>
 #include "utils.h"
 
+/* Simple function to parse a FTP command line */
+void parse_ftp_command(char *line, char **command, char **arg) {
+   sscanf(line, "%s %s", *command, *arg);
+}
+
 int main (int argc, char **argv) {
 
    /* Os sockets. Um que será o socket que vai escutar pelas conexões
@@ -55,7 +60,7 @@ int main (int argc, char **argv) {
    char  recvline[MAXLINE + 1];
    char  command[4];
    char  args[MAXDATASIZE];
-   Command *cmd = malloc(sizeof(Command));
+   Response *res = malloc(sizeof(Response));
    /* Armazena o tamanho da string lida do cliente */
    ssize_t  n;
 
@@ -160,14 +165,28 @@ int main (int argc, char **argv) {
          // Making first contact and waiting for login
          write(connfd, first_contact, strlen(first_contact));
          while ((n=read(connfd, recvline, MAXLINE)) > 0) {
-            sscanf(recvline, "%s %s", command, arg);
+            parse_ftp_command(recvline, &command, &arg);
             if (strcmp(command, "USER") != 0) {
                perror("You must first use USER command then PASS to authenticate\n");
                continue;
             }
-            handle_command(command, arg);
+            handle_command(command, arg, res);
+            if (res->error != 0) {
+               perror(res->msg);
+               continue;
+            }
 
+            printf(res->msg);
             
+            char *username = malloc(sizeof(char) * strlen(arg));
+            strcpy(username, arg);
+            
+            read(connfd, recvline, MAXLINE);
+            parse_ftp_command(recvline, &command, &arg);
+            if (strcmp(command, "PASS") != 0) {
+               perror("You must first use USER command then PASS to authenticate\n");
+               continue;               
+            }
          }
          
          while ((n=read(connfd, recvline, MAXLINE)) > 0) {

@@ -6,10 +6,7 @@
 #define MAXLINE 4096
 #define USERSSIZE 1
 
-/* String for first contact message */
-char *first_contact = "220 FTP Server (Serverzao_da_massa) [::ffff:127.0.0.1]\n";
-
-void handle_command(char *command, char *arg, Response *res) {
+void handle_command(char *command, char *arg, Response *res, Connection *conn) {
    if (strcmp(command, "USER") == 0) {
       command_USER(arg, res);
    } else if (strcmp(command, "PASS") == 0) {
@@ -25,29 +22,13 @@ void handle_command(char *command, char *arg, Response *res) {
    }
 }
 
-void command_USER(char *arg, Response *res) {
-   char *line;
-   size_t len = 0;
-   ssize_t n;
-   FILE *file = fopen("./users.txt", "r");
-   if (file == NULL) {
-      res->username_accepted = 0;
-      res->error = 1;
-      sprintf(res->msg, "Could not login due to error openning users.txt file");
+void command_USER(char *arg, Response *res, Connection *conn) {
+   if (arg == NULL) {
+      sprintf(res->msg, "500 USER: command requires a parameter\n");
+      res->error = 0;
       return;
    }
    
-   while ((n = getline(&line, &len, file)) > 0) {
-      char *username;
-      char *password;
-      sscanf(line, "%s %s", username, password); 
-      if (strcmp(username, arg) == 0) {
-         
-      }
-   }
-   
-   fclose(file);
+   sprintf(res->msg, "331 Password required for %s\n", arg);
+   res->error = 0;
 }
-
-void fill_USER_response(Reponse *res, 
-
