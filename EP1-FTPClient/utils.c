@@ -32,3 +32,8 @@ void command_USER(char *arg, Response *res, Connection *conn) {
    sprintf(res->msg, "331 Password required for %s\n", arg);
    res->error = 0;
 }
+
+void command_QUIT(char *arg, Response *res, Connection *conn) {
+   sprintf(res->msg, "221 Goodbye");
+   close(conn->socket_id);
+}
