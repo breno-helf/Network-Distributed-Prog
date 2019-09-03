@@ -8,6 +8,10 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
       command_PASS(arg, res, conn);
    } else if (strcmp(command, "QUIT") == 0) {
       command_QUIT(arg, res, conn);
+   } else if (strcmp(command, "PWD") == 0) {
+      command_PWD(arg, res, conn);
+   } else if (strcmp(command, "CWD") == 0) {
+      command_CWD(arg, res, conn);
    } else {
       res->error = 1;
       res->msg = malloc(sizeof(char) * MAXSTRINGSIZE);
@@ -28,9 +32,7 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
       NULL;
    } else if (strcmp(command, "RETR") == 0) {
       NULL;
-   } else if (strcmp(command, "CWD") == 0) {
-      NULL;
-   }  
+   }
 
    */
 }
@@ -80,6 +82,21 @@ void command_QUIT(char *arg, Response *res, Connection *conn) {
    close(conn->socket_id);
    exit(0);
 }
+
+void command_PWD(char *arg, Response *res, Connection *conn) {
+   getcwd(path_name, sizeof(path_name));
+   sprintf(res->msg, "257 \"%s\" is the curent directory\n", path_name);
+}
+
+void command_CWD(char *arg, Response *res, Connection *conn) {
+   if (chdir(arg) == 0) {
+      sprintf(res->msg, "250 CWD command successful\n");
+   }
+   else {
+      sprintf(res->msg, "550 \"%s\": No such file or directory\n", arg);
+   }
+}
+
 char *turn_upper(char *str) {
   unsigned char *p = (unsigned char *)str;
   while (*p) {
