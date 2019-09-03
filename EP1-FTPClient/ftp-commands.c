@@ -11,7 +11,7 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
    } else {
       res->error = 1;
       res->msg = malloc(sizeof(char) * MAXDATASIZE);
-      sprintf(res->msg, "Command %s is not supported by this server\n", command);
+      sprintf(res->msg, "500 %s not understood\n", command);
    }
 
    /*

@@ -2,6 +2,9 @@
 #include "ftp-utils.h"
 
 void parse_ftp_command(char *line, char *command, char *arg) {
+   /* In case we have an empty command, we shall have empty command and arg */
+   strcpy(command, "");
+   strcpy(arg, "");
    sscanf(line, "%s %s", command, arg);
 }
 

@@ -35,8 +35,8 @@ int main (int argc, char **argv) {
    pid_t childpid;
    /* Variables to help with the connection with the client */
    char recvline[MAXLINE + 1];
-   char *command = (char *)malloc(sizeof(char) * MAXDATASIZE);
-   char *arg = (char *)malloc(sizeof(char) * MAXDATASIZE);
+   char command[MAXDATASIZE];
+   char arg[MAXDATASIZE];
    Response *res = (Response *)malloc(sizeof(Response));
    Connection *conn = (Connection *)malloc(sizeof(Connection));
    /* Store the size of the string read by the client */
@@ -45,6 +45,8 @@ int main (int argc, char **argv) {
    if (argc != 2) {
       fprintf(stderr,"Use: %s <Port>\n",argv[0]);
       fprintf(stderr,"It will run a simple FTP server on the port <Port>\n");
+      free(res);
+      free(conn);
       exit(1);
    }
 
@@ -56,6 +58,8 @@ int main (int argc, char **argv) {
     * the internet (because of the number 0) */
    if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
       perror("socket :(\n");
+      free(res);
+      free(conn);
       exit(2);
    }
 
@@ -76,6 +80,8 @@ int main (int argc, char **argv) {
    servaddr.sin_port        = htons(atoi(argv[1]));
    if (bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1) {
       perror("bind :(\n");
+      free(res);
+      free(conn);
       exit(3);
    }
 
@@ -86,6 +92,8 @@ int main (int argc, char **argv) {
     */
    if (listen(listenfd, LISTENQ) == -1) {
       perror("listen :(\n");
+      free(res);
+      free(conn);
       exit(4);
    }
 
@@ -104,6 +112,8 @@ int main (int argc, char **argv) {
        * function. */
       if ((connfd = accept(listenfd, (struct sockaddr *) NULL, NULL)) == -1 ) {
          perror("accept :(\n");
+         free(res);
+         free(conn);
          exit(5);
       }
       
@@ -119,7 +129,7 @@ int main (int argc, char **argv) {
        */
       if ((childpid = fork()) == 0) {
          /**** CHILD process ****/
-         printf("[Uma conexao aberta]\n");
+         printf("[One connection open]\n");
          /* As we are in the child proecss we don't need listenfd
           * socket. Just parent process needs this socket. */
          close(listenfd);
@@ -151,13 +161,13 @@ int main (int argc, char **argv) {
          /* Making first contact and waiting for login */
          conn->socket_id = connfd;
          write(connfd, first_contact, strlen(first_contact));
-         for (;;) {
-            n = read(connfd, recvline, MAXLINE);
+         while ((n = read(connfd, recvline, MAXLINE)) > 0) {            
             recvline[n] = '\0';
             parse_ftp_command(recvline, command, arg);
             
             if (strcmp(command, "USER") != 0 && strcmp(command, "QUIT") != 0) {
-               client_error(connfd, "You must first use USER to authenticate!\n");
+               fill_message(res, "500 You must first use USER to authenticate!\n");
+               client_error(connfd, res->msg);
                continue;
             }
 
@@ -167,12 +177,13 @@ int main (int argc, char **argv) {
                continue;
             }
             write_client(connfd, res->msg);
-                        
+
             n = read(connfd, recvline, MAXLINE);
             recvline[n] = '\0';
             parse_ftp_command(recvline, command, arg);
             if (strcmp(command, "PASS") != 0 && strcmp(command, "QUIT") != 0) {
-               client_error(connfd, "After USER command you must use PASS to authenticate!\n");
+               fill_message(res, "500 After USER command you must use PASS to authenticate!\n");
+               client_error(connfd, res->msg);
                continue;               
             }
             
@@ -192,6 +203,8 @@ int main (int argc, char **argv) {
             printf("[Client connected with child process %d sent:] ",getpid());
             if ((fputs(recvline,stdout)) == EOF) {
                perror("fputs :( \n");
+               free(res);
+               free(conn);
                exit(6);
             }
 
@@ -212,6 +225,8 @@ int main (int argc, char **argv) {
 
          /* After the connection, we can close the child process */
          printf("[One connection closed.]\n");
+         free(res);
+         free(conn);
          exit(0);
       }
       /**** PARENT PROCESS ****/
@@ -220,5 +235,7 @@ int main (int argc, char **argv) {
        * the child process */
       close(connfd);
    }
+   free(res);
+   free(conn);
    exit(0);
 }
