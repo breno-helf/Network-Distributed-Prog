@@ -239,6 +239,7 @@ int main (int argc, char **argv) {
             }
 
             parse_ftp_command(recvline, command, arg);
+            turn_upper(command);
             handle_command(command, arg, res, conn);
             if (res->error != 0) {
                client_error(connfd, res->msg);
