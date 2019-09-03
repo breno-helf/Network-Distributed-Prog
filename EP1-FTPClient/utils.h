@@ -48,4 +48,8 @@ void command_PASS(char *arg, Response *res, Connection *conn);
 
 void command_QUIT(char *arg, Response *res, Connection *conn);
 
+void command_PWD(char *arg, Response *res, Connection *conn);
+
+void command_CWD(char *arg, Response *res, Connection *conn);
+
 char *turn_upper(char *str);
