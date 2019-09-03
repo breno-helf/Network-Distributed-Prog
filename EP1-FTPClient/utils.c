@@ -84,6 +84,7 @@ void command_QUIT(char *arg, Response *res, Connection *conn) {
 }
 
 void command_PWD(char *arg, Response *res, Connection *conn) {
+   char path_name[256];
    getcwd(path_name, sizeof(path_name));
    sprintf(res->msg, "257 \"%s\" is the curent directory\n", path_name);
 }

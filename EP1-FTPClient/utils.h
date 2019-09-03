@@ -37,8 +37,6 @@ typedef struct Connection {
    int socket_id;   
 } Connection;
 
-char path_name[256];
-
 /* String for first contact message */
 static char *first_contact = "220 FTP Server (Serverzao_da_massa) [::ffff:127.0.0.1]\n";
 
