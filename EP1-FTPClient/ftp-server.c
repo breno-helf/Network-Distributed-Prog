@@ -41,7 +41,9 @@ int main (int argc, char **argv) {
    char command[MAXDATASIZE];
    char arg[MAXDATASIZE];
    Response *res = (Response *)malloc(sizeof(Response));
+   res->error = 0;
    Connection *conn = (Connection *)malloc(sizeof(Connection));
+   conn->logged_status = 0;
    /* Store the size of the string read by the client */
    ssize_t n;
 

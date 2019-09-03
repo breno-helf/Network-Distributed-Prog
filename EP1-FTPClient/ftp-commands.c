@@ -52,7 +52,7 @@ void command_USER(char *arg, Response *res, Connection *conn) {
    res->msg = malloc(sizeof(char) * MAXDATASIZE);
    sprintf(res->msg, "331 Password required for %s\n", arg);
    res->error = 0;
-   conn->username = malloc(sizeof(char) * strlen(arg));
+   conn->username = malloc(sizeof(char) * MAXDATASIZE);
    strcpy(conn->username, arg);
 }
 
