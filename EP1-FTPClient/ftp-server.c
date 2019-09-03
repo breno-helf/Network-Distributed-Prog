@@ -39,6 +39,7 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include <unistd.h>
+#include <ctype.h>
 #include "utils.h"
 
 /* Simple function to parse a FTP command line */
@@ -49,6 +50,15 @@ void parse_ftp_command(char *line, char *command, char *arg) {
 void client_error(int connfd, char *msg) {
    write(connfd, msg, strlen(msg));
    fprintf(stderr, "[Client %d] - ERROR: %s\n", connfd, msg);
+}
+
+char *turn_upper(char *str) {
+  unsigned char *p = (unsigned char *)str;
+  while (*p) {
+     *p = toupper(*p);
+      p++;
+  }
+  return str;
 }
 
 int main (int argc, char **argv) {
@@ -175,30 +185,39 @@ int main (int argc, char **argv) {
             n = read(connfd, recvline, MAXLINE);
             recvline[n] = '\0';
             parse_ftp_command(recvline, command, arg);
-            
+            turn_upper(command);
+
             if (strcmp(command, "USER") != 0 && strcmp(command, "QUIT") != 0) {
                client_error(connfd, "You must first use USER to authenticate!\n");
                continue;
             }
 
             handle_command(command, arg, res, conn);
+
             if (res->error != 0) {
+               printf("error\n");
                client_error(connfd, res->msg);
                free(res->msg);
                continue;
             }
+
             write(connfd, res->msg, strlen(res->msg));
-                        
+
             n = read(connfd, recvline, MAXLINE);
             recvline[n] = '\0';
             parse_ftp_command(recvline, command, arg);
+
+            turn_upper(command);
+
             if (strcmp(command, "PASS") != 0 && strcmp(command, "QUIT") != 0) {
+               printf("7\n");
                client_error(connfd, "After USER command you must use PASS to authenticate!\n");
                free(conn->username);
                continue;               
             }
-            
+         
             handle_command(command, arg, res, conn);
+
             if (res->error != 0) {
                client_error(connfd, res->msg);
                free(res->msg);
