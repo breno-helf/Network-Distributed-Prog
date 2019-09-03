@@ -1,5 +1,13 @@
 #define _GNU_SOURCE
 #include "ftp-commands.h"
+#include "ftp-utils.h"
+#include <strings.h>
+#include <string.h>
+
+
+int pasvfd, connfd2;
+
+struct sockaddr_in pasvaddr;
 
 void handle_command(char *command, char *arg, Response *res, Connection *conn) {
    if (strcmp(command, "USER") == 0) {
@@ -32,7 +40,6 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
      } else if (strcmp(command, "RETR") == 0) {
      NULL;
      }
-
    */
 }
 
@@ -203,4 +210,39 @@ void command_LIST(char *arg, Response *res, Connection *conn) {
       close(conn->pasvfd);
       conn->pasvfd = -1;
    }
+}
+
+void command_PASV(char *arg, Response *res, Connection *conn) {
+
+   if ((pasvfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+      perror("socket :(\n");
+      exit(2);
+   }
+
+   srand (time(NULL));
+   int connect_port = ((rand()%64511)+1024);
+   bzero(&pasvaddr, sizeof(pasvaddr));
+   pasvaddr.sin_family      = AF_INET;
+   pasvaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+   pasvaddr.sin_port        = htons(connect_port);
+
+   if (bind(pasvfd, (struct sockaddr *)&pasvaddr, sizeof(pasvaddr)) == -1) {
+      perror("bind :(\n");
+      exit(3);
+   }
+
+   printf("%d\n",connect_port);
+
+   if (listen(pasvfd, LISTENQ) == -1) {
+      perror("listen :(\n");
+      exit(4);
+   }
+
+   if ((connfd2 = accept(pasvfd, (struct sockaddr *) NULL, NULL)) == -1 ) {
+      perror("accept :(\n");
+      exit(5);
+   }
+
+   printf("yayayay\n");
+
 }
