@@ -1,5 +1,5 @@
 #define _GNU_SOURCE
-#include "utils.h"
+#include "ftp-commands.h"
 
 void handle_command(char *command, char *arg, Response *res, Connection *conn) {
    if (strcmp(command, "USER") == 0) {
@@ -14,9 +14,8 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
       command_CWD(arg, res, conn);
    } else {
       res->error = 1;
-      res->msg = malloc(sizeof(char) * MAXSTRINGSIZE);
-
-      sprintf(res->msg, "Command %s is not supported by this server\n", command);
+      res->msg = malloc(sizeof(char) * MAXDATASIZE);
+      sprintf(res->msg, "500 %s not understood\n", command);
    }
 
    /*
@@ -39,18 +38,18 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
 
 void command_USER(char *arg, Response *res, Connection *conn) {   
    if (arg == NULL) {      
-      res->msg = "500 USER: command requires a parameter\n";
+      fill_message(res, "500 USER: command requires a parameter\n");
       res->error = 1;
       return;
    }
 
    if (conn->logged_status == 1) {
-      res->msg = "501 Reauthentication not supported\n";
+      fill_message(res, "501 Reauthentication not supported\n");
       res->error = 1;
       return;
    }
 
-   res->msg = malloc(sizeof(char) * MAXSTRINGSIZE);
+   res->msg = malloc(sizeof(char) * MAXDATASIZE);
    sprintf(res->msg, "331 Password required for %s\n", arg);
    res->error = 0;
    conn->username = malloc(sizeof(char) * strlen(arg));
@@ -59,27 +58,30 @@ void command_USER(char *arg, Response *res, Connection *conn) {
 
 void command_PASS(char *arg, Response *res, Connection *conn) {
    if (arg == NULL) {
-      sprintf(res->msg, "500 PASS: command requires a parameter\n");
+      fill_message(res, "500 PASS: command requires a parameter\n");
       res->error = 1;
       return;   
    }
 
    if (conn->logged_status == 1) {
-      res->msg = "503 You are already logged in\n";
+      fill_message(res, "503 You are already logged in\n");
       res->error = 1;
       return;
    }
    
+   res->msg = malloc(sizeof(char) * MAXDATASIZE);
    sprintf(res->msg, "230 User %s logged in\n", conn->username);
    res->error = 0;
    conn->logged_status = 1;
 }
 
 void command_QUIT(char *arg, Response *res, Connection *conn) {
-   res->msg = "221 Goodbye\n";
+   fill_message(res, "221 Goodbye\n");
    write(conn->socket_id, res->msg, strlen(res->msg));
    fprintf(stderr, "[Client %d] - %s\n", conn->socket_id, res->msg);
    close(conn->socket_id);
+   free(res->msg);
+   free(conn->username);
    exit(0);
 }
 

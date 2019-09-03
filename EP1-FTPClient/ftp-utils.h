@@ -1,3 +1,9 @@
+/*
+  Utility functions for the implementation of FTP protocol
+ */
+#ifndef __FTP_UTILS__
+#define __FTP_UTILS__
+
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,7 +22,6 @@
 #define MAXDATASIZE 100
 #define MAXLINE 4096
 #define USERSSIZE 1
-#define MAXSTRINGSIZE 280
 
 typedef struct Response {
    /* Response message */
@@ -40,11 +45,18 @@ typedef struct Connection {
 /* String for first contact message */
 static char *first_contact = "220 FTP Server (Serverzao_da_massa) [::ffff:127.0.0.1]\n";
 
-void handle_command(char *command, char *arg, Response *res, Connection *conn);
+/* Simple function to parse a FTP command line */
+void parse_ftp_command(char *line, char *command, char *arg);
 
-void command_USER(char *arg, Response *res, Connection *conn);
+/* Send error message to the client and print error message on server side.
+   It alsos free the memory allocate on variable msg */ 
+void client_error(int connfd, char *msg);
 
-void command_PASS(char *arg, Response *res, Connection *conn);
+/* Write message for client and free variable msg */
+void write_client(int connfd, char *msg);
+
+/* allocate memory for res->msg and fill it with message */
+void fill_message(Response *res, const char *message);
 
 void command_QUIT(char *arg, Response *res, Connection *conn);
 
@@ -53,3 +65,5 @@ void command_PWD(char *arg, Response *res, Connection *conn);
 void command_CWD(char *arg, Response *res, Connection *conn);
 
 char *turn_upper(char *str);
+
+#endif
