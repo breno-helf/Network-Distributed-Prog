@@ -22,19 +22,8 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include <unistd.h>
-#include "utils.h"
-
-/* Simple function to parse a FTP command line */
-void parse_ftp_command(char *line, char *command, char *arg) {
-   sscanf(line, "%s %s", command, arg);
-}
-
-/* Send error message to the client and 
- * print error message on server side */ 
-void client_error(int connfd, char *msg) {
-   write(connfd, msg, strlen(msg));
-   fprintf(stderr, "[Client %d] - ERROR: %s\n", connfd, msg);
-}
+#include "ftp-utils.h"
+#include "ftp-commands.h"
 
 int main (int argc, char **argv) {
    /* Two sockets, one that will wait for a connection and other
@@ -46,10 +35,10 @@ int main (int argc, char **argv) {
    pid_t childpid;
    /* Variables to help with the connection with the client */
    char recvline[MAXLINE + 1];
-   char *command = malloc(sizeof(char) * MAXSTRINGSIZE);
-   char *arg = malloc(sizeof(char) * MAXSTRINGSIZE);
-   Response *res = malloc(sizeof(Response));
-   Connection *conn = malloc(sizeof(Connection));
+   char *command = (char *)malloc(sizeof(char) * MAXDATASIZE);
+   char *arg = (char *)malloc(sizeof(char) * MAXDATASIZE);
+   Response *res = (Response *)malloc(sizeof(Response));
+   Connection *conn = (Connection *)malloc(sizeof(Connection));
    /* Store the size of the string read by the client */
    ssize_t n;
 
@@ -175,28 +164,24 @@ int main (int argc, char **argv) {
             handle_command(command, arg, res, conn);
             if (res->error != 0) {
                client_error(connfd, res->msg);
-               free(res->msg);
                continue;
             }
-            write(connfd, res->msg, strlen(res->msg));
+            write_client(connfd, res->msg);
                         
             n = read(connfd, recvline, MAXLINE);
             recvline[n] = '\0';
             parse_ftp_command(recvline, command, arg);
             if (strcmp(command, "PASS") != 0 && strcmp(command, "QUIT") != 0) {
                client_error(connfd, "After USER command you must use PASS to authenticate!\n");
-               free(conn->username);
                continue;               
             }
             
             handle_command(command, arg, res, conn);
             if (res->error != 0) {
                client_error(connfd, res->msg);
-               free(res->msg);
-               free(conn->username);
                continue;
             }
-            write(connfd, res->msg, strlen(res->msg));            
+            write_client(connfd, res->msg);            
 
             break;
          }
@@ -214,10 +199,9 @@ int main (int argc, char **argv) {
             handle_command(command, arg, res, conn);
             if (res->error != 0) {
                client_error(connfd, res->msg);
-               free(res->msg);
                continue;
             }
-            write(connfd, res->msg, strlen(res->msg));            
+            write_client(connfd, res->msg);            
             
          }
          /* ========================================================= */
