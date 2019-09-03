@@ -99,12 +99,3 @@ void command_CWD(char *arg, Response *res, Connection *conn) {
       sprintf(res->msg, "550 \"%s\": No such file or directory\n", arg);
    }
 }
-
-char *turn_upper(char *str) {
-  unsigned char *p = (unsigned char *)str;
-  while (*p) {
-     *p = toupper(*p);
-      p++;
-  }
-  return str;
-}

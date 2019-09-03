@@ -23,3 +23,12 @@ void fill_message(Response *res, const char *message) {
    res->msg = (char *)malloc(sizeof(char) * strlen(message) + 1);
    strcpy(res->msg, message);
 }
+
+char *turn_upper(char *str) {
+  unsigned char *p = (unsigned char *)str;
+  while (*p) {
+     *p = toupper(*p);
+      p++;
+  }
+  return str;
+}

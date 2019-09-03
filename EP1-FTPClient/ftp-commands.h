@@ -33,4 +33,10 @@ void command_PASS(char *arg, Response *res, Connection *conn);
 /* Implements QUIT command so that the client can close the connection */
 void command_QUIT(char *arg, Response *res, Connection *conn);
 
+/* Implements PWD command so that the client can check which path he is on */
+void command_PWD(char *arg, Response *res, Connection *conn);
+
+/* Implements PWD command so that the client can change his path */
+void command_CWD(char *arg, Response *res, Connection *conn);
+
 #endif
