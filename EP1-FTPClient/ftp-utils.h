@@ -42,9 +42,6 @@ typedef struct Connection {
    int socket_id;   
 } Connection;
 
-/* String for first contact message */
-static char *first_contact = "220 FTP Server (Serverzao_da_massa) [::ffff:127.0.0.1]\n";
-
 /* Simple function to parse a FTP command line */
 void parse_ftp_command(char *line, char *command, char *arg);
 

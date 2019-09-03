@@ -99,3 +99,8 @@ void command_CWD(char *arg, Response *res, Connection *conn) {
       sprintf(res->msg, "550 \"%s\": No such file or directory\n", arg);
    }
 }
+
+void command_TYPE(char *arg, Response *res, Connection *conn) {
+   res->error = 0;
+   fill_message(res, "200 Type is just a dummy command for this recreational FTP\n");
+}
