@@ -175,6 +175,7 @@ int main (int argc, char **argv) {
             n = read(connfd, recvline, MAXLINE);
             recvline[n] = '\0';
             parse_ftp_command(recvline, command, arg);
+            turn_upper(command);
             
             if (strcmp(command, "USER") != 0 && strcmp(command, "QUIT") != 0) {
                client_error(connfd, "You must first use USER to authenticate!\n");
@@ -192,12 +193,12 @@ int main (int argc, char **argv) {
             n = read(connfd, recvline, MAXLINE);
             recvline[n] = '\0';
             parse_ftp_command(recvline, command, arg);
+            turn_upper(command);
             if (strcmp(command, "PASS") != 0 && strcmp(command, "QUIT") != 0) {
                client_error(connfd, "After USER command you must use PASS to authenticate!\n");
                free(conn->username);
                continue;               
             }
-            
             handle_command(command, arg, res, conn);
             if (res->error != 0) {
                client_error(connfd, res->msg);
@@ -220,6 +221,7 @@ int main (int argc, char **argv) {
             }
 
             parse_ftp_command(recvline, command, arg);
+            turn_upper(command);
             handle_command(command, arg, res, conn);
             if (res->error != 0) {
                client_error(connfd, res->msg);

@@ -72,12 +72,19 @@ void command_PASS(char *arg, Response *res, Connection *conn) {
    res->error = 0;
    conn->logged_status = 1;
 }
-   
 
 void command_QUIT(char *arg, Response *res, Connection *conn) {
-   sprintf(res->msg, "221 Goodbye\n");
+   res->msg = "221 Goodbye\n";
    write(conn->socket_id, res->msg, strlen(res->msg));
    fprintf(stderr, "[Client %d] - %s\n", conn->socket_id, res->msg);
    close(conn->socket_id);
    exit(0);
+}
+char *turn_upper(char *str) {
+  unsigned char *p = (unsigned char *)str;
+  while (*p) {
+     *p = toupper(*p);
+      p++;
+  }
+  return str;
 }

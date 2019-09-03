@@ -10,6 +10,7 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #define LISTENQ 1
 #define MAXDATASIZE 100
@@ -46,3 +47,5 @@ void command_USER(char *arg, Response *res, Connection *conn);
 void command_PASS(char *arg, Response *res, Connection *conn);
 
 void command_QUIT(char *arg, Response *res, Connection *conn);
+
+char *turn_upper(char *str);
