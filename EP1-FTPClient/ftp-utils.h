@@ -16,6 +16,7 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #define LISTENQ 1
 #define MAXDATASIZE 100
@@ -56,5 +57,13 @@ void write_client(int connfd, char *msg);
 
 /* allocate memory for res->msg and fill it with message */
 void fill_message(Response *res, const char *message);
+
+void command_QUIT(char *arg, Response *res, Connection *conn);
+
+void command_PWD(char *arg, Response *res, Connection *conn);
+
+void command_CWD(char *arg, Response *res, Connection *conn);
+
+char *turn_upper(char *str);
 
 #endif

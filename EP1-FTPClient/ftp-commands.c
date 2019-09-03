@@ -8,6 +8,10 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
       command_PASS(arg, res, conn);
    } else if (strcmp(command, "QUIT") == 0) {
       command_QUIT(arg, res, conn);
+   } else if (strcmp(command, "PWD") == 0) {
+      command_PWD(arg, res, conn);
+   } else if (strcmp(command, "CWD") == 0) {
+      command_CWD(arg, res, conn);
    } else {
       res->error = 1;
       res->msg = malloc(sizeof(char) * MAXDATASIZE);
@@ -17,13 +21,17 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
    /*
      TO IMPLEMENT, PLEASE ADD THE COMMAND THAT WE NEED TO IMPLEMENT HERE.     
      
-     else if (strcmp(command, "LIST") == 0) {
+   else if (strcmp(command, "LIST") == 0) {
       NULL;
    } else if (strcmp(command, "DELE") == 0) {
       NULL;
    } else if (strcmp(command, "STOR") == 0) {
       NULL;
-   } 
+   } else if (strcmp(command, "PASV") == 0) {
+      NULL;
+   } else if (strcmp(command, "RETR") == 0) {
+      NULL;
+   }
 
    */
 }
@@ -66,7 +74,6 @@ void command_PASS(char *arg, Response *res, Connection *conn) {
    res->error = 0;
    conn->logged_status = 1;
 }
-   
 
 void command_QUIT(char *arg, Response *res, Connection *conn) {
    fill_message(res, "221 Goodbye\n");
@@ -76,4 +83,28 @@ void command_QUIT(char *arg, Response *res, Connection *conn) {
    free(res->msg);
    free(conn->username);
    exit(0);
+}
+
+void command_PWD(char *arg, Response *res, Connection *conn) {
+   char path_name[256];
+   getcwd(path_name, sizeof(path_name));
+   sprintf(res->msg, "257 \"%s\" is the curent directory\n", path_name);
+}
+
+void command_CWD(char *arg, Response *res, Connection *conn) {
+   if (chdir(arg) == 0) {
+      sprintf(res->msg, "250 CWD command successful\n");
+   }
+   else {
+      sprintf(res->msg, "550 \"%s\": No such file or directory\n", arg);
+   }
+}
+
+char *turn_upper(char *str) {
+  unsigned char *p = (unsigned char *)str;
+  while (*p) {
+     *p = toupper(*p);
+      p++;
+  }
+  return str;
 }
