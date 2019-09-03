@@ -1,30 +1,13 @@
-/* Por Prof. Daniel Batista <batista@ime.usp.br>
- * Em 9/8/2017
- * 
- * Um código simples (não é o código ideal, mas é o suficiente para o
- * EP) de um servidor de eco a ser usado como base para o EP1. Ele
- * recebe uma linha de um cliente e devolve a mesma linha. Teste ele
- * assim depois de compilar:
- * 
- * ./servidor 8000
- * 
- * Com este comando o servidor ficará escutando por conexões na porta
- * 8000 TCP (Se você quiser fazer o servidor escutar em uma porta
- * menor que 1024 você precisa ser root).
+/* Made by:
+ * Breno Helfstein Moura - 9790972
+ * Matheus Barcellos de Castro Cunha - 11208238
  *
- * Depois conecte no servidor via telnet. Rode em outro terminal:
+ *
+ * Based on example eco server provided by 
+ * Prof. Daniel Batista <batista@ime.usp.br>
+ *
+ * TODO: don't forget to put the running instructions here.
  * 
- * telnet 127.0.0.1 8000
- * 
- * Escreva sequências de caracteres seguidas de ENTER. Você verá que
- * o telnet exibe a mesma linha em seguida. Esta repetição da linha é
- * enviada pelo servidor. O servidor também exibe no terminal onde ele
- * estiver rodando as linhas enviadas pelos clientes.
- * 
- * Obs.: Você pode conectar no servidor remotamente também. Basta saber o
- * endereço IP remoto da máquina onde o servidor está rodando e não
- * pode haver nenhum firewall no meio do caminho bloqueando conexões na
- * porta escolhida.
  */
 
 #define _GNU_SOURCE
@@ -46,56 +29,57 @@ void parse_ftp_command(char *line, char *command, char *arg) {
    sscanf(line, "%s %s", command, arg);
 }
 
+/* Send error message to the client and 
+ * print error message on server side */ 
 void client_error(int connfd, char *msg) {
    write(connfd, msg, strlen(msg));
    fprintf(stderr, "[Client %d] - ERROR: %s\n", connfd, msg);
 }
 
 int main (int argc, char **argv) {
-
-   /* Os sockets. Um que será o socket que vai escutar pelas conexões
-    * e o outro que vai ser o socket específico de cada conexão */
+   /* Two sockets, one that will wait for a connection and other
+    * that will stabilish the connection with a specific client */
    int listenfd, connfd;
-   /* Informações sobre o socket (endereço e porta) ficam nesta struct */
+   /* The information regarding the sockets stay in this struct */
    struct sockaddr_in servaddr;
-   /* Retorno da função fork para saber quem é o processo filho e quem
-    * é o processo pai */
+
    pid_t childpid;
-   /* Armazena linhas recebidas do cliente */
-   char  recvline[MAXLINE + 1];
+   /* Variables to help with the connection with the client */
+   char recvline[MAXLINE + 1];
    char *command = malloc(sizeof(char) * MAXSTRINGSIZE);
    char *arg = malloc(sizeof(char) * MAXSTRINGSIZE);
    Response *res = malloc(sizeof(Response));
    Connection *conn = malloc(sizeof(Connection));
-   /* Armazena o tamanho da string lida do cliente */
-   ssize_t  n;
+   /* Store the size of the string read by the client */
+   ssize_t n;
 
    if (argc != 2) {
-      fprintf(stderr,"Uso: %s <Porta>\n",argv[0]);
-      fprintf(stderr,"Vai rodar um servidor de echo na porta <Porta> TCP\n");
+      fprintf(stderr,"Use: %s <Port>\n",argv[0]);
+      fprintf(stderr,"It will run a simple FTP server on the port <Port>\n");
       exit(1);
    }
 
-   /* Criação de um socket. Eh como se fosse um descritor de arquivo. Eh
-    * possivel fazer operacoes como read, write e close. Neste
-    * caso o socket criado eh um socket IPv4 (por causa do AF_INET),
-    * que vai usar TCP (por causa do SOCK_STREAM), já que o FTP
-    * funciona sobre TCP, e será usado para uma aplicação convencional sobre
-    * a Internet (por causa do número 0) */
+   /* Creation of a socket. It is like a file descriptor. It supports
+    * operations like read, write and close. In this case the socket is 
+    * created as a socket IPv4 (because of AF_INET argument) that will use
+    * TCP (because of SOCK_STREAM argument) because we know that FTP runs 
+    * over TCP, and will be used as a conventional application over the 
+    * the internet (because of the number 0) */
    if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
       perror("socket :(\n");
       exit(2);
    }
 
-   /* Agora é necessário informar os endereços associados a este
-    * socket. É necessário informar o endereço / interface e a porta,
-    * pois mais adiante o socket ficará esperando conexões nesta porta
-    * e neste(s) endereços. Para isso é necessário preencher a struct
-    * servaddr. É necessário colocar lá o tipo de socket (No nosso
-    * caso AF_INET porque é IPv4), em qual endereço / interface serão
-    * esperadas conexões (Neste caso em qualquer uma -- INADDR_ANY) e
-    * qual a porta. Neste caso será a porta que foi passada como
-    * argumento no shell (atoi(argv[1]))
+   /* Now it is necessary to inform the addresses assoctiated to this
+    * socket. It is necessary to inform the address / interface and
+    * the port because the socket will be waiting connection on this
+    * port and address. because of this it is necessary to fill the
+    * struct servaddr. It is necessary to put the type of the socket
+    * (AF_INET in our case because of IPv4), in what address / interface 
+    * they expect connection (Any in our cane -- INADDR_ANY) and what
+    * port. In that case the port is informed as a shell argument.
+    * (atoi(argv[1])). Pay attention that any port lower than 1024
+    * will require sudo.
     */
    bzero(&servaddr, sizeof(servaddr));
    servaddr.sin_family      = AF_INET;
@@ -106,48 +90,49 @@ int main (int argc, char **argv) {
       exit(3);
    }
 
-   /* Como este código é o código de um servidor, o socket será um
-    * socket passivo. Para isto é necessário chamar a função listen
-    * que define que este é um socket de servidor que ficará esperando
-    * por conexões nos endereços definidos na função bind. */
+   /* As this code is a server code, the socket will be a passive socket.
+    * For that it will be necessary to call the funciton listen that 
+    * this socket is a server socket that will be awaiting for connection 
+    * of the addressed defined by the function bind
+    */
    if (listen(listenfd, LISTENQ) == -1) {
       perror("listen :(\n");
       exit(4);
    }
 
-   printf("[Servidor no ar. Aguardando conexoes na porta %s]\n",argv[1]);
-   printf("[Para finalizar, pressione CTRL+c ou rode um kill ou killall]\n");
+   printf("[Server is online. Waiting for connection at port %s]\n",argv[1]);
+   printf("[To exit, press CTRL+c or run kill/killall to kill the process]\n");
    
-   /* O servidor no final das contas é um loop infinito de espera por
-    * conexões e processamento de cada uma individualmente */
+   /* The server is just an infinite loop waiting for connections */
    for (;;) {
-      /* O socket inicial que foi criado é o socket que vai aguardar
-       * pela conexão na porta especificada. Mas pode ser que existam
-       * diversos clientes conectando no servidor. Por isso deve-se
-       * utilizar a função accept. Esta função vai retirar uma conexão
-       * da fila de conexões que foram aceitas no socket listenfd e
-       * vai criar um socket específico para esta conexão. O descritor
-       * deste novo socket é o retorno da função accept. */
+      /* The initial socket that is created is the socket the will wait
+       * for connection on the specified port. But it can exist several
+       * clients connecting on the server. For that reason we should use
+       * the accept funciton. That function will take out a connection
+       * from the queue of connection that were accepted by the listenfd
+       * socket and will create a specific socket for that connection.
+       * The description of this new socket is returnet by the accept 
+       * function. */
       if ((connfd = accept(listenfd, (struct sockaddr *) NULL, NULL)) == -1 ) {
          perror("accept :(\n");
          exit(5);
       }
       
-      /* Agora o servidor precisa tratar este cliente de forma
-       * separada. Para isto é criado um processo filho usando a
-       * função fork. O processo vai ser uma cópia deste. Depois da
-       * função fork, os dois processos (pai e filho) estarão no mesmo
-       * ponto do código, mas cada um terá um PID diferente. Assim é
-       * possível diferenciar o que cada processo terá que fazer. O
-       * filho tem que processar a requisição do cliente. O pai tem
-       * que voltar no loop para continuar aceitando novas conexões */
-      /* Se o retorno da função fork for zero, é porque está no
-       * processo filho. */
-      if ( (childpid = fork()) == 0) {
-         /**** PROCESSO FILHO ****/
+      /* Now the server needs to take care this client in a separate way
+       * For that it is created a separate child process using the fork
+       * function. The process will be a copy of this one. After the fork
+       * function, both process (child and parent) will be on the same line
+       * of code, but each one will have a different PID. That way it is 
+       * possible to differentiate what each process will have to do. The
+       * child has to processs the client request. That parent has to get
+       * back on the loop to keep accepting new connections. If fork
+       * returns 0 it is because it is on the child process.
+       */
+      if ((childpid = fork()) == 0) {
+         /**** CHILD process ****/
          printf("[Uma conexao aberta]\n");
-         /* Já que está no processo filho, não precisa mais do socket
-          * listenfd. Só o processo pai precisa deste socket. */
+         /* As we are in the child proecss we don't need listenfd
+          * socket. Just parent process needs this socket. */
          close(listenfd);
          
          /* Agora pode ler do socket e escrever no socket. Isto tem
@@ -159,14 +144,20 @@ int main (int argc, char **argv) {
           * esperando por esta resposta) 
           */
 
-         /* ========================================================= */
-         /* ========================================================= */
-         /*                         EP1 INÍCIO                        */
-         /* ========================================================= */
-         /* ========================================================= */
-         /* TODO: É esta parte do código que terá que ser modificada
-          * para que este servidor consiga interpretar comandos FTP   */
+         /* Now we can read from the socket and write on the socket. 
+          * This has to be done in sichronization with the client. 
+          * It doesn't make sense to read withut having what to read.
+          * That means that in this case it is considered that the 
+          * client will send something to the server. The server will
+          * have to process what was sent and will send a response to
+          * the client, that will have to be awaiting a response.
+          */
 
+         /* ========================================================= */
+         /* ========================================================= */
+         /*                         EP1 START                         */
+         /* ========================================================= */
+         /* ========================================================= */
 
          /* Making first contact and waiting for login */
          conn->socket_id = connfd;
@@ -213,7 +204,7 @@ int main (int argc, char **argv) {
          /* User authenticated, listening to other calls */
          while ((n=read(connfd, recvline, MAXLINE)) > 0) {
             recvline[n]='\0';
-            printf("[Cliente conectado no processo filho %d enviou:] ",getpid());
+            printf("[Client connected with child process %d sent:] ",getpid());
             if ((fputs(recvline,stdout)) == EOF) {
                perror("fputs :( \n");
                exit(6);
@@ -235,15 +226,14 @@ int main (int argc, char **argv) {
          /* ========================================================= */
          /* ========================================================= */
 
-         /* Após ter feito toda a troca de informação com o cliente,
-          * pode finalizar o processo filho */
-         printf("[Uma conexao fechada]\n");
+         /* After the connection, we can close the child process */
+         printf("[One connection closed.]\n");
          exit(0);
       }
-      /**** PROCESSO PAI ****/
-      /* Se for o pai, a única coisa a ser feita é fechar o socket
-       * connfd (ele é o socket do cliente específico que será tratado
-       * pelo processo filho) */
+      /**** PARENT PROCESS ****/
+      /* If it is the parent process the only thing we will need to do
+       * is to close the connfd, because it is the specific socket of 
+       * the child process */
       close(connfd);
    }
    exit(0);
