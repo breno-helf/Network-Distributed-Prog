@@ -74,7 +74,6 @@ void command_PASS(char *arg, Response *res, Connection *conn) {
    
 
 void command_QUIT(char *arg, Response *res, Connection *conn) {
-   printf("%d\n",(conn->socket_id));
    res->msg = "221 Goodbye\n";
    write(conn->socket_id, res->msg, strlen(res->msg));
    fprintf(stderr, "[Client %d] - %s\n", conn->socket_id, res->msg);
