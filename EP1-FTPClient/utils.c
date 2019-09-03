@@ -18,13 +18,19 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
    /*
      TO IMPLEMENT, PLEASE ADD THE COMMAND THAT WE NEED TO IMPLEMENT HERE.     
      
-     else if (strcmp(command, "LIST") == 0) {
+   else if (strcmp(command, "LIST") == 0) {
       NULL;
    } else if (strcmp(command, "DELE") == 0) {
       NULL;
    } else if (strcmp(command, "STOR") == 0) {
       NULL;
-   } 
+   } else if (strcmp(command, "PASV") == 0) {
+      NULL;
+   } else if (strcmp(command, "RETR") == 0) {
+      NULL;
+   } else if (strcmp(command, "CWD") == 0) {
+      NULL;
+   }  
 
    */
 }
