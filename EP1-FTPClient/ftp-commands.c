@@ -1,7 +1,6 @@
 #define _GNU_SOURCE
 #include "ftp-commands.h"
 
-
 void handle_command(char *command, char *arg, Response *res, Connection *conn) {
    if (strcmp(command, "USER") == 0) {
       command_USER(arg, res, conn);
