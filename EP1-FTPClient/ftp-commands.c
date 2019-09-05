@@ -5,7 +5,7 @@
 #include <string.h>
 
 
-int pasvfd, connfd2;
+int pasvfd, datafd;
 
 struct sockaddr_in pasvaddr;
 
@@ -22,6 +22,8 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
       command_CWD(arg, res, conn);
    } else if (strcmp(command, "PASV") == 0) {
       command_PASV(arg, res, conn);
+   } else if (strcmp(command, "LIST") == 0) {
+      command_LIST(arg, res, conn);
    } else {
       res->error = 1;
       res->msg = malloc(sizeof(char) * MAXDATASIZE);
@@ -31,9 +33,7 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
    /*
      TO IMPLEMENT, PLEASE ADD THE COMMAND THAT WE NEED TO IMPLEMENT HERE.     
      
-   else if (strcmp(command, "LIST") == 0) {
-      NULL;
-   } else if (strcmp(command, "DELE") == 0) {
+   else if (strcmp(command, "DELE") == 0) {
       NULL;
    } else if (strcmp(command, "STOR") == 0) {
       NULL;
@@ -151,4 +151,52 @@ void command_PASV(char *arg, Response *res, Connection *conn) {
 void command_TYPE(char *arg, Response *res, Connection *conn) {
    res->error = 0;
    fill_message(res, "200 Type is just a dummy command for this recreational FTP\n");
+}
+
+void command_LIST(char *arg, Response *res, Connection *conn) {
+
+   datafd = accept(pasvfd, (struct sockaddr *)NULL, NULL);
+
+   // write_client(connfd,"150 Opening ASCII mode data connection for file list\n");
+
+   printf("uhu\n");
+    
+   char path_name[1024];
+
+   char buffer[1024];
+
+   char file_buffer[1024];
+
+   int n2;
+
+   printf("uhu2\n");
+
+   getcwd(path_name, sizeof(path_name));
+   printf("uhu3\n");
+   sprintf(buffer, "ls -l %s", path_name);
+   printf("uhu4\n");
+   FILE *p1 = popen(buffer, "r");
+   while ((n2=fread(file_buffer, 1, 256, p1)) > 0) {
+      int st = send(datafd, file_buffer, n2, 0);
+      if (st < 0) {
+         printf("deu ruim\n");
+         //Nao enviou
+         break;
+      } else {
+         file_buffer[n2] = 0;
+         printf("show\n");
+         //Enviou
+      }
+   }
+
+   pclose(p1);
+   datafd = -1;
+
+   printf("deu bom ate aqui\n");
+   
+   if (pasvfd >= 0) {
+      // info(1, "LIST, closing passive server ... %d", close(pasvfd));
+      close(pasvfd);
+      pasvfd = -1;
+   }
 }

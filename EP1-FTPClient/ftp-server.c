@@ -31,7 +31,7 @@ const char *first_contact = "220 FTP Server (Serverzao_da_massa) [::ffff:127.0.0
 int main (int argc, char **argv) {
    /* Two sockets, one that will wait for a connection and other
     * that will stabilish the connection with a specific client */
-   int listenfd, connfd;
+   
    /* The information regarding the sockets stay in this struct */
    struct sockaddr_in servaddr;
 
