@@ -11,17 +11,6 @@
  */
 
 #define _GNU_SOURCE
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <string.h>
-#include <netdb.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <time.h>
-#include <unistd.h>
 #include "ftp-utils.h"
 #include "ftp-commands.h"
 
@@ -32,6 +21,7 @@ int main (int argc, char **argv) {
    /* Two sockets, one that will wait for a connection and other
     * that will stabilish the connection with a specific client */
    int listenfd, connfd;
+   
    /* The information regarding the sockets stay in this struct */
    struct sockaddr_in servaddr;
 

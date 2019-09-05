@@ -5,18 +5,7 @@
 #define __FTP_COMMANDS__
 
 #define _GNU_SOURCE
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <string.h>
 #include <strings.h>
-#include <netdb.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <time.h>
-#include <unistd.h>
 #include "ftp-utils.h"
 
 /* Gets a parsed command and executes the specified action, filling response
@@ -40,10 +29,15 @@ void command_PWD(char *arg, Response *res, Connection *conn);
 /* Implements PWD command so that the client can change his path */
 void command_CWD(char *arg, Response *res, Connection *conn);
 
-/* */
+/* Implements PASV command so that the client can enter passive mode
+   and receive data from another address */
 void command_PASV(char *arg, Response *res, Connection *conn);
 
-/* Dummy command TYPE to respond to basic FTP client*/
+/* Dummy command TYPE to respond to basic FTP client */
 void command_TYPE(char *arg, Response *res, Connection *conn);
+
+/* Implements LIST command so that the client can LIST the elements 
+   in the current directory */
+void command_LIST(char *arg, Response *res, Connection *conn);
 
 #endif

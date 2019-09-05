@@ -14,6 +14,8 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
       command_CWD(arg, res, conn);
    } else if (strcmp(command, "PASV") == 0) {
       command_PASV(arg, res, conn);
+   } else if (strcmp(command, "LIST") == 0) {
+      command_LIST(arg, res, conn);
    } else {
       res->error = 1;
       res->msg = malloc(sizeof(char) * MAXDATASIZE);
@@ -23,9 +25,7 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
    /*
      TO IMPLEMENT, PLEASE ADD THE COMMAND THAT WE NEED TO IMPLEMENT HERE.     
      
-   else if (strcmp(command, "LIST") == 0) {
-      NULL;
-   } else if (strcmp(command, "DELE") == 0) {
+   else if (strcmp(command, "DELE") == 0) {
       NULL;
    } else if (strcmp(command, "STOR") == 0) {
       NULL;
@@ -81,6 +81,10 @@ void command_QUIT(char *arg, Response *res, Connection *conn) {
    write(conn->socket_id, res->msg, strlen(res->msg));
    fprintf(stderr, "[Client %d] - %s\n", conn->socket_id, res->msg);
    close(conn->socket_id);
+   if (conn->pasvfd >= 0) {
+      close(conn->pasvfd);
+      conn->pasvfd = -1;
+   }
    free(res->msg);
    free(conn->username);
    exit(0);
@@ -138,9 +142,62 @@ void command_PASV(char *arg, Response *res, Connection *conn) {
       fill_message(res, "500 Failed make socket listen\n");
       return;      
    }
+
+   res->error = 0;
+   res->msg = malloc(sizeof(char) * MAXDATASIZE);
+   /* We need to print the address to connect over here, I am not sure how */
+   sprintf(res->msg, "200 Entered in Passive mode with success\n");
 }
 
 void command_TYPE(char *arg, Response *res, Connection *conn) {
    res->error = 0;
    fill_message(res, "200 Type is just a dummy command for this recreational FTP\n");
+}
+
+void command_LIST(char *arg, Response *res, Connection *conn) {
+   int datafd;
+   
+   if (conn->pasvfd != -1) {
+      /* We are in passive mode */
+      if ((datafd = accept(conn->pasvfd, (struct sockaddr *)NULL, NULL)) == -1) {
+         res->error = 1;
+         fill_message(res, "500 Failed to connect to server\n");
+      }
+   } else {
+      if ((datafd = accept(conn->socket_id, (struct sockaddr *)NULL, NULL)) == -1) {
+         res->error = 1;
+         fill_message(res, "500 Failed to connect to server\n");
+      }
+   }
+    
+   char path_name[1024];
+   char buffer[1024];
+   char file_buffer[1024];
+
+   /* How much we've read */
+   int n;
+
+   res->error = 0;
+   getcwd(path_name, sizeof(path_name));
+   sprintf(buffer, "ls -l %s", path_name);
+   FILE *p1 = popen(buffer, "r");
+   while ((n = fread(file_buffer, 1, MAXDATASIZE, p1)) > 0) {
+      int bytes_sent = send(datafd, file_buffer, n, 0);
+      if (bytes_sent < 0) {
+         res->error = 1;
+         fill_message(res, "500 We failed to sent bytes to the client side\n");
+         break;
+      }
+      
+      file_buffer[n] = 0;   
+   }
+
+   if (res->error == 0)
+      fill_message(res, "200 We had success sendind the LIST to the client\n");
+   
+   pclose(p1);   
+   if (conn->pasvfd >= 0) {
+      close(conn->pasvfd);
+      conn->pasvfd = -1;
+   }
 }
