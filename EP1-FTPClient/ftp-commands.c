@@ -1,13 +1,5 @@
 #define _GNU_SOURCE
 #include "ftp-commands.h"
-#include "ftp-utils.h"
-#include <strings.h>
-#include <string.h>
-
-
-int pasvfd, datafd;
-
-struct sockaddr_in pasvaddr;
 
 void handle_command(char *command, char *arg, Response *res, Connection *conn) {
    if (strcmp(command, "USER") == 0) {
@@ -155,7 +147,6 @@ void command_TYPE(char *arg, Response *res, Connection *conn) {
 
 void command_LIST(char *arg, Response *res, Connection *conn) {
    int datafd;
-
    
    if (conn->pasvfd != -1) {
       /* We are in passive mode */
@@ -177,6 +168,7 @@ void command_LIST(char *arg, Response *res, Connection *conn) {
    /* How much we've read */
    int n;
 
+   res->error = 0;
    getcwd(path_name, sizeof(path_name));
    sprintf(buffer, "ls -l %s", path_name);
    FILE *p1 = popen(buffer, "r");
@@ -185,23 +177,18 @@ void command_LIST(char *arg, Response *res, Connection *conn) {
       if (bytes_sent < 0) {
          res->error = 1;
          fill_message(res, "500 We failed to sent bytes to the client side\n");
-
-         pclose(p1);
-         if (pasvfd >= 0) {
-            close(pasvfd);
-            pasvfd = -1;
-         }
-         return;
+         break;
       }
       
       file_buffer[n] = 0;   
    }
 
-   res->error = 0;
-   fill_message(res, "200 We had success sendind the LIST to the client\n");
+   if (res->error == 0)
+      fill_message(res, "200 We had success sendind the LIST to the client\n");
+   
    pclose(p1);   
-   if (pasvfd >= 0) {
-      close(pasvfd);
-      pasvfd = -1;
+   if (conn->pasvfd >= 0) {
+      close(conn->pasvfd);
+      conn->pasvfd = -1;
    }
 }

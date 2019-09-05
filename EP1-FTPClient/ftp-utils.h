@@ -23,8 +23,6 @@
 #define MAXLINE 4096
 #define USERSSIZE 1
 
-int listenfd, connfd;
-
 typedef struct Response {
    /* Response message */
    char *msg;
