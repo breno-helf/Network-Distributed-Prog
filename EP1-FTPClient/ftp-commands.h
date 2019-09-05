@@ -42,4 +42,7 @@ void command_CWD(char *arg, Response *res, Connection *conn);
 /* */
 void command_PASV(char *arg, Response *res, Connection *conn);
 
+/* Dummy command TYPE to respond to basic FTP client*/
+void command_TYPE(char *arg, Response *res, Connection *conn);
+
 #endif

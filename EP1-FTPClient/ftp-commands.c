@@ -60,7 +60,7 @@ void command_USER(char *arg, Response *res, Connection *conn) {
    res->msg = malloc(sizeof(char) * MAXDATASIZE);
    sprintf(res->msg, "331 Password required for %s\n", arg);
    res->error = 0;
-   conn->username = malloc(sizeof(char) * strlen(arg));
+   conn->username = malloc(sizeof(char) * MAXDATASIZE);
    strcpy(conn->username, arg);
 }
 
@@ -140,5 +140,9 @@ void command_PASV(char *arg, Response *res, Connection *conn) {
    }
 
    printf("yayayay\n");
+}
 
+void command_TYPE(char *arg, Response *res, Connection *conn) {
+   res->error = 0;
+   fill_message(res, "200 Type is just a dummy command for this recreational FTP\n");
 }
