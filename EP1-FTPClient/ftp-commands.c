@@ -149,7 +149,7 @@ void command_PASV(char *arg, Response *res, Connection *conn) {
    char *ip_address = get_ip_adddress(conn);
 
    sprintf(res->msg,
-           "200 Entered in Passive mode with success %s,%d,%d\n",
+           "227 Entering Passive Mode (%s,%d,%d).\n",
            ip_address, connect_port / 256, connect_port % 256);
 }
 
@@ -202,7 +202,9 @@ void command_LIST(char *arg, Response *res, Connection *conn) {
    pclose(p1);   
    if (conn->pasvfd >= 0) {
       close(conn->pasvfd);
+      close(datafd);
       conn->pasvfd = -1;
+      datafd = -1;
    }
 }
 
@@ -223,30 +225,49 @@ void command_RMD(char *arg, Response *res, Connection *conn) {
 }
 
 void command_RETR(char *arg, Response *res, Connection *conn) {   
+   int datafd;
+
+   if (conn->pasvfd != -1) {
+      /* We are in passive mode */
+      if ((datafd = accept(conn->pasvfd, (struct sockaddr *)NULL, NULL)) == -1) {
+         res->error = 1;
+         fill_message(res, "500 Failed to connect to server\n");
+         return;
+      }
+   } else {
+      res->error = 1;
+      fill_message(res, "500 Must be in passive mode\n");
+      return;
+   }
+
    char buffer[1024];
    char file_buffer[1024];
    int n;
-   int datafd;
    
-   datafd = accept(conn->pasvfd, (struct sockaddr *)NULL, NULL);
+   res->error = 0;
    sprintf(buffer, "cat %s", arg);
-
    fill_message(res, "");
-
    FILE *p1 = popen(buffer, "r");
 
    while ((n=fread(file_buffer, 1, 1024, p1)) > 0) {
-      int st = send(datafd, file_buffer, n, 0);
-      if (st < 0) {
-         printf("deu ruim\n");
-         //Nao enviou
+      int bytes_sent = send(datafd, file_buffer, n, 0);
+      if (bytes_sent < 0) {
+         res->error = 1;
+         fill_message(res, "500 We failed to sent bytes to the client side\n");
          break;
       } 
    }
 
+   if (res->error == 0) {
+      fill_message(res, "200 ");
+   }
+
    pclose(p1);
-   close(datafd);
-   close(conn->pasvfd);
-   conn->pasvfd = -1;
+   if (conn->pasvfd >= 0) {
+      close(conn->pasvfd);
+      close(datafd);
+      conn->pasvfd = -1;
+      datafd = -1;
+   }
 }
 
