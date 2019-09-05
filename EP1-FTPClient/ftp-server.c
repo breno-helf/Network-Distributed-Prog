@@ -44,6 +44,7 @@ int main (int argc, char **argv) {
    res->error = 0;
    Connection *conn = (Connection *)malloc(sizeof(Connection));
    conn->logged_status = 0;
+   conn->pasvfd = -1;
    /* Store the size of the string read by the client */
    ssize_t n;
 

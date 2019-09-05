@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <strings.h>
 #include <netdb.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -38,6 +39,9 @@ void command_PWD(char *arg, Response *res, Connection *conn);
 
 /* Implements PWD command so that the client can change his path */
 void command_CWD(char *arg, Response *res, Connection *conn);
+
+/* */
+void command_PASV(char *arg, Response *res, Connection *conn);
 
 /* Dummy command TYPE to respond to basic FTP client*/
 void command_TYPE(char *arg, Response *res, Connection *conn);
