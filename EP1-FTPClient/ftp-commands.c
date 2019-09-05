@@ -26,6 +26,10 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
       command_LIST(arg, res, conn);
    } else if (strcmp(command, "DELE") == 0) {
       command_DELE(arg, res, conn);
+   } else if (strcmp(command, "RMD") == 0)  {
+      command_RMD(arg, res, conn);
+   } else if (strcmp(command, "RETR") == 0) {
+      command_RETR(arg, res, conn);
    } else {
       res->error = 1;
       res->msg = malloc(sizeof(char) * MAXDATASIZE);
@@ -34,9 +38,7 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
 
    /*
      TO IMPLEMENT, PLEASE ADD THE COMMAND THAT WE NEED TO IMPLEMENT HERE.     
-   } else if (strcmp(command, "STOR") == 0) {
-      NULL;
-   } else if (strcmp(command, "RETR") == 0) {
+   else if (strcmp(command, "STOR") == 0) {
       NULL;
    }
 
@@ -236,64 +238,86 @@ void command_PASV(char *arg, Response *res, Connection *conn) {
       fill_message(res, "421 can not create pasv port for passive mode");
    }
 
-   printf("%d\n",pasvaddr.sin_addr.s_addr);
-
    // else {
    //    fill_message(res, "421 can not create pasv port for passive mode");
    // }
-
-   printf("yayayay\n");
 
 }
 
 void command_LIST(char *arg, Response *res, Connection *conn) {
 
+   char path_name[1024];
+   char buffer[1024];
+   char file_buffer[1024];
+   int n;
+
    datafd = accept(pasvfd, (struct sockaddr *)NULL, NULL);
 
    // write_client(connfd,"150 Opening ASCII mode data connection for file list\n");
 
-   printf("uhu\n");
-    
-   char path_name[1024];
-
-   char buffer[1024];
-
-   char file_buffer[1024];
-
-   int n2;
-
-   printf("uhu2\n");
+   fill_message(res, "");
 
    getcwd(path_name, sizeof(path_name));
-   printf("uhu3\n");
    sprintf(buffer, "ls -l %s", path_name);
-   printf("uhu4\n");
    FILE *p1 = popen(buffer, "r");
-   while ((n2=fread(file_buffer, 1, 256, p1)) > 0) {
-      int st = send(datafd, file_buffer, n2, 0);
+   while ((n=fread(file_buffer, 1, 1024, p1)) > 0) {
+      int st = send(datafd, file_buffer, n, 0);
       if (st < 0) {
          printf("deu ruim\n");
-         //Nao enviou
          break;
-      } else {
-         file_buffer[n2] = 0;
-         printf("show\n");
-         //Enviou
-      }
+      } 
    }
 
    pclose(p1);
    close(datafd);
    close(pasvfd);
-
-   printf("deu bom ate aqui\n");
+   datafd = -1;
+   pasvfd = -1;
 }
 
 void command_DELE(char *arg, Response *res, Connection *conn) {
    char buffer[1024];
 
+   sprintf(buffer, "rm %s", arg);
+
+   popen(buffer,"r");
+}
+
+void command_RMD(char *arg, Response *res, Connection *conn) {
+   char buffer[1024];
+
    sprintf(buffer, "rm -r %s", arg);
 
    popen(buffer,"r");
+}
+
+void command_RETR(char *arg, Response *res, Connection *conn) {
+   
+   char buffer[1024];
+   char file_buffer[1024];
+   int n;
+
+   datafd = accept(pasvfd, (struct sockaddr *)NULL, NULL);
+   sprintf(buffer, "cat %s", arg);
+
+   fill_message(res, "");
+
+   FILE *p1 = popen(buffer, "r");
+
+   while ((n=fread(file_buffer, 1, 1024, p1)) > 0) {
+      int st = send(datafd, file_buffer, n, 0);
+      if (st < 0) {
+         printf("deu ruim\n");
+         //Nao enviou
+         break;
+      } 
+   }
+
+   pclose(p1);
+   close(datafd);
+   close(pasvfd);
+   datafd = -1;
+   pasvfd = -1;
+
 }
 

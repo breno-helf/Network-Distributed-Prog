@@ -44,4 +44,10 @@ void command_LIST(char *arg, Response *res, Connection *conn);
 /* */
 void command_DELE(char *arg, Response *res, Connection *conn);
 
+/* */
+void command_RMD(char *arg, Response *res, Connection *conn);
+
+/* */
+void command_RETR(char *arg, Response *res, Connection *conn);
+
 #endif
