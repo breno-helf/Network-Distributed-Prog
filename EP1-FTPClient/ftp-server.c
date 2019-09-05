@@ -197,6 +197,7 @@ int main (int argc, char **argv) {
          /* User authenticated, listening to other calls */
          while ((n=read(connfd, recvline, MAXLINE)) > 0) {
             recvline[n]='\0';
+
             printf("[Client connected with child process %d sent:] ",getpid());
             if ((fputs(recvline,stdout)) == EOF) {
                perror("fputs :( \n");

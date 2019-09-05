@@ -142,7 +142,7 @@ void command_PASV(char *arg, Response *res, Connection *conn) {
       fill_message(res, "500 Failed make socket listen\n");
       return;      
    }
-
+   
    res->error = 0;
    res->msg = malloc(sizeof(char) * MAXDATASIZE);
    /* We need to print the address to connect over here, I am not sure how */
@@ -162,12 +162,12 @@ void command_LIST(char *arg, Response *res, Connection *conn) {
       if ((datafd = accept(conn->pasvfd, (struct sockaddr *)NULL, NULL)) == -1) {
          res->error = 1;
          fill_message(res, "500 Failed to connect to server\n");
+         return;
       }
    } else {
-      if ((datafd = accept(conn->socket_id, (struct sockaddr *)NULL, NULL)) == -1) {
-         res->error = 1;
-         fill_message(res, "500 Failed to connect to server\n");
-      }
+      res->error = 1;
+      fill_message(res, "500 Must be in passive mode\n");
+      return;
    }
     
    char path_name[1024];
