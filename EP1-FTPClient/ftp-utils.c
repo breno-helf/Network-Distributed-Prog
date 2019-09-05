@@ -11,12 +11,10 @@ void parse_ftp_command(char *line, char *command, char *arg) {
 void client_error(int connfd, char *msg) {
    write(connfd, msg, strlen(msg));
    fprintf(stderr, "[Client %d] - ERROR: %s\n", connfd, msg);
-   free(msg);
 }
 
 void write_client(int connfd, char *msg) {
    write(connfd, msg, strlen(msg));
-   free(msg);
 }
 
 void fill_message(Response *res, const char *message) {

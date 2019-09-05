@@ -41,13 +41,16 @@ void command_TYPE(char *arg, Response *res, Connection *conn);
    in the current directory */
 void command_LIST(char *arg, Response *res, Connection *conn);
 
-/* */
+/* Implements DELE command so that the client can delete a file */
 void command_DELE(char *arg, Response *res, Connection *conn);
 
-/* */
+/* Implements RMD command so that the client can remove a directory */
 void command_RMD(char *arg, Response *res, Connection *conn);
 
-/* */
+/* Implements RETR command so that the client can retrieve a file */
 void command_RETR(char *arg, Response *res, Connection *conn);
+
+/* Implements STOR command so that the client can store a file */
+void command_STOR(char *arg, Response *res, Connection *conn);
 
 #endif

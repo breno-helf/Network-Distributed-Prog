@@ -184,8 +184,8 @@ void command_LIST(char *arg, Response *res, Connection *conn) {
    res->error = 0;
    getcwd(path_name, sizeof(path_name));
    sprintf(buffer, "ls -l %s", path_name);
-   FILE *p1 = popen(buffer, "r");
-   while ((n = fread(file_buffer, 1, MAXDATASIZE, p1)) > 0) {
+   FILE *p = popen(buffer, "r");
+   while ((n = fread(file_buffer, 1, MAXDATASIZE, p)) > 0) {
       int bytes_sent = send(datafd, file_buffer, n, 0);
       if (bytes_sent < 0) {
          res->error = 1;
@@ -199,7 +199,8 @@ void command_LIST(char *arg, Response *res, Connection *conn) {
    if (res->error == 0)
       fill_message(res, "200 We had success sendind the LIST to the client\n");
    
-   pclose(p1);   
+   pclose(p);
+   close(datafd);
    if (conn->pasvfd >= 0) {
       close(conn->pasvfd);
       conn->pasvfd = -1;
@@ -208,10 +209,13 @@ void command_LIST(char *arg, Response *res, Connection *conn) {
 
 void command_DELE(char *arg, Response *res, Connection *conn) {
    char buffer[1024];
-
    sprintf(buffer, "rm %s", arg);
+   FILE *p = popen(buffer,"r");
 
-   popen(buffer,"r");
+   if (p == NULL) {
+      
+   }
+   
 }
 
 void command_RMD(char *arg, Response *res, Connection *conn) {
@@ -233,9 +237,9 @@ void command_RETR(char *arg, Response *res, Connection *conn) {
 
    fill_message(res, "");
 
-   FILE *p1 = popen(buffer, "r");
+   FILE *p = popen(buffer, "r");
 
-   while ((n=fread(file_buffer, 1, 1024, p1)) > 0) {
+   while ((n=fread(file_buffer, 1, 1024, p)) > 0) {
       int st = send(datafd, file_buffer, n, 0);
       if (st < 0) {
          printf("deu ruim\n");
@@ -244,9 +248,61 @@ void command_RETR(char *arg, Response *res, Connection *conn) {
       } 
    }
 
-   pclose(p1);
+   pclose(p);
    close(datafd);
    close(conn->pasvfd);
    conn->pasvfd = -1;
 }
 
+void command_STOR(char *arg, Response *res, Connection *conn) {
+   int datafd;
+   
+   if (conn->pasvfd != -1) {
+      /* We are in passive mode */
+      if ((datafd = accept(conn->pasvfd, (struct sockaddr *)NULL, NULL)) == -1) {
+         res->error = 1;
+         fill_message(res, "500 Failed to connect to server\n");
+         return;
+      }
+   } else {
+      res->error = 1;
+      fill_message(res, "500 Must be in passive mode\n");
+      return;
+   }
+
+   char buffer[1024];
+   /* How much we've read */
+   int n;
+
+   res->error = 0;
+   FILE *file = fopen(arg, "w");
+   if (file == NULL) {
+      res->error = 1;
+      fill_message(res, "451 Could not open file\n");
+      close(datafd);
+      if (conn->pasvfd >= 0) {
+         close(conn->pasvfd);
+         conn->pasvfd = -1;
+      }
+      return;
+   }
+
+   while ((n = read(datafd, buffer, sizeof(buffer))) > 0) {
+      int write = fwrite(buffer, n, 1, file); 
+      if (write == 0) {
+         res->error = 1;
+         fill_message(res, "500 We failed to write bytes to the file\n");
+         break;
+      }
+   }
+
+   if (res->error == 0)
+      fill_message(res, "200 We had success receiving bytes and storing it in a file.\n");
+   
+   pclose(file);
+   close(datafd);
+   if (conn->pasvfd >= 0) {
+      close(conn->pasvfd);
+      conn->pasvfd = -1;
+   }
+}

@@ -165,15 +165,19 @@ int main (int argc, char **argv) {
             if (strcmp(command, "USER") != 0 && strcmp(command, "QUIT") != 0) {
                fill_message(res, "500 You must first use USER to authenticate!\n");
                client_error(connfd, res->msg);
+               free(res->msg);
                continue;
             }
 
             handle_command(command, arg, res, conn);
             if (res->error != 0) {
                client_error(connfd, res->msg);
+               free(res->msg);
                continue;
             }
-            write_client(connfd, res->msg);
+            write_client(connfd, res->msg);            
+            free(res->msg);
+
 
             n = read(connfd, recvline, MAXLINE);
             recvline[n] = '\0';
@@ -182,15 +186,18 @@ int main (int argc, char **argv) {
             if (strcmp(command, "PASS") != 0 && strcmp(command, "QUIT") != 0) {
                fill_message(res, "500 After USER command you must use PASS to authenticate!\n");
                client_error(connfd, res->msg);
+               free(res->msg);
                continue;               
             }
             handle_command(command, arg, res, conn);
             if (res->error != 0) {
                client_error(connfd, res->msg);
+               free(res->msg);
                continue;
             }
             write_client(connfd, res->msg);            
-
+            free(res->msg);
+            
             break;
          }
 
@@ -211,10 +218,11 @@ int main (int argc, char **argv) {
             handle_command(command, arg, res, conn);
             if (res->error != 0) {
                client_error(connfd, res->msg);
+               free(res->msg);
                continue;
             }
             write_client(connfd, res->msg);            
-            
+            free(res->msg);            
          }
          /* ========================================================= */
          /* ========================================================= */
