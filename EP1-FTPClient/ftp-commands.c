@@ -210,22 +210,27 @@ void command_LIST(char *arg, Response *res, Connection *conn) {
 }
 
 void command_DELE(char *arg, Response *res, Connection *conn) {
-   char buffer[1024];
-   sprintf(buffer, "rm %s", arg);
-   FILE *p = popen(buffer,"r");
-
-   if (p == NULL) {
-      
+   int error = remove(arg);
+   if (error != 0) {
+      res->error = 1;
+      fill_message(res, "550 File unavailable\n");
+      return;
    }
-   
+
+   res->error = 0;
+   fill_message(res, "200 Deleted file");
 }
 
 void command_RMD(char *arg, Response *res, Connection *conn) {
-   char buffer[1024];
+   int error = remove(arg);
+   if (error != 0) {
+      res->error = 1;
+      fill_message(res, "550 Directory unavailable or directory not empty\n");
+      return;
+   }
 
-   sprintf(buffer, "rm -r %s", arg);
-
-   popen(buffer,"r");
+   res->error = 0;
+   fill_message(res, "200 Removed Directory");
 }
 
 void command_RETR(char *arg, Response *res, Connection *conn) {   
@@ -245,28 +250,39 @@ void command_RETR(char *arg, Response *res, Connection *conn) {
    }
 
    char buffer[1024];
-   char file_buffer[1024];
+   /* How much we've read */
    int n;
-   
-   res->error = 0;
-   sprintf(buffer, "cat %s", arg);
-   fill_message(res, "");
-   FILE *p1 = popen(buffer, "r");
 
-   while ((n=fread(file_buffer, 1, 1024, p1)) > 0) {
-      int bytes_sent = send(datafd, file_buffer, n, 0);
-      if (bytes_sent < 0) {
+   res->error = 0;
+   FILE *file = fopen(arg, "w");
+
+   if (file == NULL) {
+      res->error = 1;
+      fill_message(res, "451 Could not open file\n");
+      close(datafd);
+      if (conn->pasvfd >= 0) {
+         close(conn->pasvfd);
+         conn->pasvfd = -1;
+      }
+      return;
+   }
+
+   int filefd = fileno(file);
+
+   while ((n = read(filefd, buffer, sizeof(buffer))) > 0) {
+      int bytes_written = write(datafd, buffer, n); 
+      if (bytes_written == -1) {
          res->error = 1;
-         fill_message(res, "500 We failed to sent bytes to the client side\n");
+         fill_message(res, "500 We failed to write bytes to the socket\n");
          break;
-      } 
+      }
    }
 
    if (res->error == 0) {
-      fill_message(res, "200 ");
+      fill_message(res, "200 Sucess sending the file\n");
    }
 
-   pclose(p1);
+   fclose(file);
    if (conn->pasvfd >= 0) {
       close(conn->pasvfd);
       close(datafd);
@@ -297,6 +313,7 @@ void command_STOR(char *arg, Response *res, Connection *conn) {
 
    res->error = 0;
    FILE *file = fopen(arg, "w");
+
    if (file == NULL) {
       res->error = 1;
       fill_message(res, "451 Could not open file\n");
@@ -308,9 +325,10 @@ void command_STOR(char *arg, Response *res, Connection *conn) {
       return;
    }
 
+   int filefd = fileno(file);
    while ((n = read(datafd, buffer, sizeof(buffer))) > 0) {
-      int write = fwrite(buffer, n, 1, file); 
-      if (write == 0) {
+      int bytes_written = write(filefd, buffer, n); 
+      if (bytes_written == -1) {
          res->error = 1;
          fill_message(res, "500 We failed to write bytes to the file\n");
          break;
@@ -320,7 +338,7 @@ void command_STOR(char *arg, Response *res, Connection *conn) {
    if (res->error == 0)
       fill_message(res, "200 We had success receiving bytes and storing it in a file.\n");
    
-   pclose(file);
+   fclose(file);
    close(datafd);
    if (conn->pasvfd >= 0) {
       close(conn->pasvfd);
