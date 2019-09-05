@@ -214,67 +214,6 @@ void command_LIST(char *arg, Response *res, Connection *conn) {
    }
 }
 
-void command_PASV(char *arg, Response *res, Connection *conn) {
-
-   if ((pasvfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-      fill_message(res, "421 can not create pasv port for passive mode");
-   }
-
-   srand (time(NULL));
-   int connect_port = ((rand()%64511)+1024);
-
-   bzero(&pasvaddr, sizeof(pasvaddr));
-   pasvaddr.sin_family      = AF_INET;
-   pasvaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-   pasvaddr.sin_port        = htons(connect_port);
-
-   if (bind(pasvfd, (struct sockaddr *)&pasvaddr, sizeof(pasvaddr)) == -1) {
-      fill_message(res, "421 can not create pasv port for passive mode");
-   }
-
-   printf("%d\n",connect_port);
-
-   if (listen(pasvfd, LISTENQ) == -1) {
-      fill_message(res, "421 can not create pasv port for passive mode");
-   }
-
-   // else {
-   //    fill_message(res, "421 can not create pasv port for passive mode");
-   // }
-
-}
-
-void command_LIST(char *arg, Response *res, Connection *conn) {
-
-   char path_name[1024];
-   char buffer[1024];
-   char file_buffer[1024];
-   int n;
-
-   datafd = accept(pasvfd, (struct sockaddr *)NULL, NULL);
-
-   // write_client(connfd,"150 Opening ASCII mode data connection for file list\n");
-
-   fill_message(res, "");
-
-   getcwd(path_name, sizeof(path_name));
-   sprintf(buffer, "ls -l %s", path_name);
-   FILE *p1 = popen(buffer, "r");
-   while ((n=fread(file_buffer, 1, 1024, p1)) > 0) {
-      int st = send(datafd, file_buffer, n, 0);
-      if (st < 0) {
-         printf("deu ruim\n");
-         break;
-      } 
-   }
-
-   pclose(p1);
-   close(datafd);
-   close(pasvfd);
-   datafd = -1;
-   pasvfd = -1;
-}
-
 void command_DELE(char *arg, Response *res, Connection *conn) {
    char buffer[1024];
 
@@ -291,8 +230,7 @@ void command_RMD(char *arg, Response *res, Connection *conn) {
    popen(buffer,"r");
 }
 
-void command_RETR(char *arg, Response *res, Connection *conn) {
-   
+void command_RETR(char *arg, Response *res, Connection *conn) {   
    char buffer[1024];
    char file_buffer[1024];
    int n;
@@ -318,6 +256,5 @@ void command_RETR(char *arg, Response *res, Connection *conn) {
    close(pasvfd);
    datafd = -1;
    pasvfd = -1;
-
 }
 
