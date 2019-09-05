@@ -5,7 +5,7 @@
 #include <string.h>
 
 
-int pasvfd, connfd2;
+int pasvfd, datafd;
 
 struct sockaddr_in pasvaddr;
 
@@ -215,34 +215,81 @@ void command_LIST(char *arg, Response *res, Connection *conn) {
 void command_PASV(char *arg, Response *res, Connection *conn) {
 
    if ((pasvfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-      perror("socket :(\n");
-      exit(2);
+      fill_message(res, "421 can not create pasv port for passive mode");
    }
 
    srand (time(NULL));
    int connect_port = ((rand()%64511)+1024);
+
    bzero(&pasvaddr, sizeof(pasvaddr));
    pasvaddr.sin_family      = AF_INET;
    pasvaddr.sin_addr.s_addr = htonl(INADDR_ANY);
    pasvaddr.sin_port        = htons(connect_port);
 
    if (bind(pasvfd, (struct sockaddr *)&pasvaddr, sizeof(pasvaddr)) == -1) {
-      perror("bind :(\n");
-      exit(3);
+      fill_message(res, "421 can not create pasv port for passive mode");
    }
 
    printf("%d\n",connect_port);
 
    if (listen(pasvfd, LISTENQ) == -1) {
-      perror("listen :(\n");
-      exit(4);
+      fill_message(res, "421 can not create pasv port for passive mode");
    }
 
-   if ((connfd2 = accept(pasvfd, (struct sockaddr *) NULL, NULL)) == -1 ) {
-      perror("accept :(\n");
-      exit(5);
-   }
+   printf("%d\n",pasvaddr.sin_addr.s_addr);
+
+   // else {
+   //    fill_message(res, "421 can not create pasv port for passive mode");
+   // }
 
    printf("yayayay\n");
 
+}
+
+void command_LIST(char *arg, Response *res, Connection *conn) {
+
+   datafd = accept(pasvfd, (struct sockaddr *)NULL, NULL);
+
+   // write_client(connfd,"150 Opening ASCII mode data connection for file list\n");
+
+   printf("uhu\n");
+    
+   char path_name[1024];
+
+   char buffer[1024];
+
+   char file_buffer[1024];
+
+   int n2;
+
+   printf("uhu2\n");
+
+   getcwd(path_name, sizeof(path_name));
+   printf("uhu3\n");
+   sprintf(buffer, "ls -l %s", path_name);
+   printf("uhu4\n");
+   FILE *p1 = popen(buffer, "r");
+   while ((n2=fread(file_buffer, 1, 256, p1)) > 0) {
+      int st = send(datafd, file_buffer, n2, 0);
+      if (st < 0) {
+         printf("deu ruim\n");
+         //Nao enviou
+         break;
+      } else {
+         file_buffer[n2] = 0;
+         printf("show\n");
+         //Enviou
+      }
+   }
+
+   pclose(p1);
+   datafd = -1;
+
+   printf("deu bom ate aqui\n");
+   
+   if (pasvfd >= 0) {
+      // info(1, "LIST, closing passive server ... %d", close(pasvfd));
+      close(pasvfd);
+      pasvfd = -1;
+   }
 }
