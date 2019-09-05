@@ -154,48 +154,53 @@ void command_TYPE(char *arg, Response *res, Connection *conn) {
 }
 
 void command_LIST(char *arg, Response *res, Connection *conn) {
+   int datafd;
 
-   datafd = accept(pasvfd, (struct sockaddr *)NULL, NULL);
-
-   // write_client(connfd,"150 Opening ASCII mode data connection for file list\n");
-
-   printf("uhu\n");
-    
-   char path_name[1024];
-
-   char buffer[1024];
-
-   char file_buffer[1024];
-
-   int n2;
-
-   printf("uhu2\n");
-
-   getcwd(path_name, sizeof(path_name));
-   printf("uhu3\n");
-   sprintf(buffer, "ls -l %s", path_name);
-   printf("uhu4\n");
-   FILE *p1 = popen(buffer, "r");
-   while ((n2=fread(file_buffer, 1, 256, p1)) > 0) {
-      int st = send(datafd, file_buffer, n2, 0);
-      if (st < 0) {
-         printf("deu ruim\n");
-         //Nao enviou
-         break;
-      } else {
-         file_buffer[n2] = 0;
-         printf("show\n");
-         //Enviou
+   
+   if (conn->pasvfd != -1) {
+      /* We are in passive mode */
+      if ((datafd = accept(conn->pasvfd, (struct sockaddr *)NULL, NULL)) == -1) {
+         res->error = 1;
+         fill_message(res, "500 Failed to connect to server\n");
+      }
+   } else {
+      if ((datafd = accept(conn->socket_id, (struct sockaddr *)NULL, NULL)) == -1) {
+         res->error = 1;
+         fill_message(res, "500 Failed to connect to server\n");
       }
    }
+    
+   char path_name[1024];
+   char buffer[1024];
+   char file_buffer[1024];
 
-   pclose(p1);
-   datafd = -1;
+   /* How much we've read */
+   int n;
 
-   printf("deu bom ate aqui\n");
-   
+   getcwd(path_name, sizeof(path_name));
+   sprintf(buffer, "ls -l %s", path_name);
+   FILE *p1 = popen(buffer, "r");
+   while ((n = fread(file_buffer, 1, MAXDATASIZE, p1)) > 0) {
+      int bytes_sent = send(datafd, file_buffer, n, 0);
+      if (bytes_sent < 0) {
+         res->error = 1;
+         fill_message(res, "500 We failed to sent bytes to the client side\n");
+
+         pclose(p1);
+         if (pasvfd >= 0) {
+            close(pasvfd);
+            pasvfd = -1;
+         }
+         return;
+      }
+      
+      file_buffer[n] = 0;   
+   }
+
+   res->error = 0;
+   fill_message(res, "200 We had success sendind the LIST to the client\n");
+   pclose(p1);   
    if (pasvfd >= 0) {
-      // info(1, "LIST, closing passive server ... %d", close(pasvfd));
       close(pasvfd);
       pasvfd = -1;
    }
