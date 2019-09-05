@@ -1,13 +1,6 @@
 #define _GNU_SOURCE
 #include "ftp-commands.h"
-#include "ftp-utils.h"
-#include <strings.h>
-#include <string.h>
 
-
-int pasvfd, connfd2;
-
-struct sockaddr_in pasvaddr;
 
 void handle_command(char *command, char *arg, Response *res, Connection *conn) {
    if (strcmp(command, "USER") == 0) {
@@ -84,6 +77,7 @@ void command_PASS(char *arg, Response *res, Connection *conn) {
 }
 
 void command_QUIT(char *arg, Response *res, Connection *conn) {
+   res->error = 0;
    fill_message(res, "221 Goodbye\n");
    write(conn->socket_id, res->msg, strlen(res->msg));
    fprintf(stderr, "[Client %d] - %s\n", conn->socket_id, res->msg);
@@ -94,52 +88,57 @@ void command_QUIT(char *arg, Response *res, Connection *conn) {
 }
 
 void command_PWD(char *arg, Response *res, Connection *conn) {
-   char path_name[256];
-   getcwd(path_name, sizeof(path_name));
+   char path_name[MAXDATASIZE];
+
+   if (getcwd(path_name, sizeof(path_name)) == NULL) {
+      res->error = 1;
+      fill_message(res, "500 Failed to get the path");
+      return;
+   } 
+
+   res->error = 0;
+   res->msg = malloc(sizeof(char) * MAXDATASIZE);
    sprintf(res->msg, "257 \"%s\" is the curent directory\n", path_name);
 }
 
 void command_CWD(char *arg, Response *res, Connection *conn) {
    if (chdir(arg) == 0) {
-      sprintf(res->msg, "250 CWD command successful\n");
+      res->error = 0;
+      fill_message(res, "250 CWD command successful\n");
+      return;
    }
-   else {
-      sprintf(res->msg, "550 \"%s\": No such file or directory\n", arg);
-   }
+   
+   res->error = 1;
+   res->msg = malloc(sizeof(char) * MAXDATASIZE);
+   sprintf(res->msg, "550 \"%s\": No such file or directory\n", arg);
 }
 
 void command_PASV(char *arg, Response *res, Connection *conn) {
-
-   if ((pasvfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-      perror("socket :(\n");
-      exit(2);
+   if ((conn->pasvfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+      res->error = 1;
+      fill_message(res, "500 Failed to create a socket\n");
+      return;
    }
 
-   srand (time(NULL));
-   int connect_port = ((rand()%64511)+1024);
+   srand(time(NULL));
+   int connect_port = (rand() % 64511) + 1024;
+   struct sockaddr_in pasvaddr;
    bzero(&pasvaddr, sizeof(pasvaddr));
-   pasvaddr.sin_family      = AF_INET;
+   pasvaddr.sin_family = AF_INET;
    pasvaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-   pasvaddr.sin_port        = htons(connect_port);
+   pasvaddr.sin_port = htons(connect_port);
 
-   if (bind(pasvfd, (struct sockaddr *)&pasvaddr, sizeof(pasvaddr)) == -1) {
-      perror("bind :(\n");
-      exit(3);
+   if (bind(conn->pasvfd, (struct sockaddr *)&pasvaddr, sizeof(pasvaddr)) == -1) {
+      res->error = 1;
+      fill_message(res, "500 Failed to bind socket\n");
+      return;
    }
 
-   printf("%d\n",connect_port);
-
-   if (listen(pasvfd, LISTENQ) == -1) {
-      perror("listen :(\n");
-      exit(4);
+   if (listen(conn->pasvfd, LISTENQ) == -1) {
+      res->error = 1;
+      fill_message(res, "500 Failed make socket listen\n");
+      return;      
    }
-
-   if ((connfd2 = accept(pasvfd, (struct sockaddr *) NULL, NULL)) == -1 ) {
-      perror("accept :(\n");
-      exit(5);
-   }
-
-   printf("yayayay\n");
 }
 
 void command_TYPE(char *arg, Response *res, Connection *conn) {

@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <strings.h>
 #include <netdb.h>
 #include <sys/types.h>
 #include <netinet/in.h>

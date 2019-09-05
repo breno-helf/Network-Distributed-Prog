@@ -19,7 +19,7 @@
 #include <ctype.h>
 
 #define LISTENQ 1
-#define MAXDATASIZE 100
+#define MAXDATASIZE 255
 #define MAXLINE 4096
 #define USERSSIZE 1
 
@@ -39,7 +39,11 @@ typedef struct Connection {
    int logged_status;
    
    /* Socket of the current connection */
-   int socket_id;   
+   int socket_id;
+
+   /* Passive socket file descriptor, 
+      -1 if we don't have any passive connection */
+   int pasvfd;
 } Connection;
 
 /* Simple function to parse a FTP command line */
