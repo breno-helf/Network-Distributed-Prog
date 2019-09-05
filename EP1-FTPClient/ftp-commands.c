@@ -16,6 +16,12 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
       command_PASV(arg, res, conn);
    } else if (strcmp(command, "LIST") == 0) {
       command_LIST(arg, res, conn);
+   } else if (strcmp(command, "DELE") == 0) {
+      command_DELE(arg, res, conn);
+   } else if (strcmp(command, "RMD") == 0)  {
+      command_RMD(arg, res, conn);
+   } else if (strcmp(command, "RETR") == 0) {
+      command_RETR(arg, res, conn);
    } else {
       res->error = 1;
       res->msg = malloc(sizeof(char) * MAXDATASIZE);
@@ -24,14 +30,9 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
 
    /*
      TO IMPLEMENT, PLEASE ADD THE COMMAND THAT WE NEED TO IMPLEMENT HERE.     
-     
-     else if (strcmp(command, "DELE") == 0) {
-     NULL;
-     } else if (strcmp(command, "STOR") == 0) {
-     NULL;
-     } else if (strcmp(command, "RETR") == 0) {
-     NULL;
-     }
+   else if (strcmp(command, "STOR") == 0) {
+      NULL;
+   }
 
    */
 }
@@ -204,3 +205,48 @@ void command_LIST(char *arg, Response *res, Connection *conn) {
       conn->pasvfd = -1;
    }
 }
+
+void command_DELE(char *arg, Response *res, Connection *conn) {
+   char buffer[1024];
+
+   sprintf(buffer, "rm %s", arg);
+
+   popen(buffer,"r");
+}
+
+void command_RMD(char *arg, Response *res, Connection *conn) {
+   char buffer[1024];
+
+   sprintf(buffer, "rm -r %s", arg);
+
+   popen(buffer,"r");
+}
+
+void command_RETR(char *arg, Response *res, Connection *conn) {   
+   char buffer[1024];
+   char file_buffer[1024];
+   int n;
+   int datafd;
+   
+   datafd = accept(conn->pasvfd, (struct sockaddr *)NULL, NULL);
+   sprintf(buffer, "cat %s", arg);
+
+   fill_message(res, "");
+
+   FILE *p1 = popen(buffer, "r");
+
+   while ((n=fread(file_buffer, 1, 1024, p1)) > 0) {
+      int st = send(datafd, file_buffer, n, 0);
+      if (st < 0) {
+         printf("deu ruim\n");
+         //Nao enviou
+         break;
+      } 
+   }
+
+   pclose(p1);
+   close(datafd);
+   close(conn->pasvfd);
+   conn->pasvfd = -1;
+}
+
