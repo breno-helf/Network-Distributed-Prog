@@ -173,29 +173,44 @@ void command_LIST(char *arg, Response *res, Connection *conn) {
       fill_message(res, "500 Must be in passive mode\n");
       return;
    }
+
+   write_client(conn->socket_id, "150 Opening ASCII mode data connection for file list\n");
     
    char path_name[1024];
    char buffer[1024];
-   char file_buffer[1024];
+   char file_buffer[1];
 
    /* How much we've read */
    int n;
+   int print = 0;
 
    res->error = 0;
    getcwd(path_name, sizeof(path_name));
    sprintf(buffer, "ls -l %s", path_name);
    FILE *p = popen(buffer, "r");
-   while ((n = fread(file_buffer, 1, MAXDATASIZE, p)) > 0) {
-      int bytes_sent = write(datafd, file_buffer, n);
-      if (bytes_sent == -1) {
-         res->error = 1;
-         fill_message(res, "500 We failed to sent bytes to the client side\n");
-         break;
+   while ((n = fread(file_buffer, 1, 1, p)) > 0) {
+
+      if (*file_buffer == '\n') {
+         if (print == 0) {
+            print = 1;
+            continue;
+         }
+         write(datafd, "\r", n);
+      }
+
+      if (print==1) {
+         int bytes_sent = write(datafd, file_buffer, n);
+      
+         if (bytes_sent == -1) {
+            res->error = 1;
+            fill_message(res, "500 We failed to sent bytes to the client side\n");
+            break;
+         }
       }
    }
 
    if (res->error == 0)
-      fill_message(res, "200 We had success sendind the LIST to the client\n");
+      fill_message(res, "226 Transfer complete\n");
    
    pclose(p);
    close(datafd);
