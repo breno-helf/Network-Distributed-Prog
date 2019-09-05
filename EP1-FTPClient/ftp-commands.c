@@ -24,6 +24,8 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
       command_PASV(arg, res, conn);
    } else if (strcmp(command, "LIST") == 0) {
       command_LIST(arg, res, conn);
+   } else if (strcmp(command, "DELE") == 0) {
+      command_DELE(arg, res, conn);
    } else {
       res->error = 1;
       res->msg = malloc(sizeof(char) * MAXDATASIZE);
@@ -32,14 +34,12 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
 
    /*
      TO IMPLEMENT, PLEASE ADD THE COMMAND THAT WE NEED TO IMPLEMENT HERE.     
-     
-     else if (strcmp(command, "DELE") == 0) {
-     NULL;
-     } else if (strcmp(command, "STOR") == 0) {
-     NULL;
-     } else if (strcmp(command, "RETR") == 0) {
-     NULL;
-     }
+   } else if (strcmp(command, "STOR") == 0) {
+      NULL;
+   } else if (strcmp(command, "RETR") == 0) {
+      NULL;
+   }
+
    */
 }
 
@@ -283,13 +283,16 @@ void command_LIST(char *arg, Response *res, Connection *conn) {
    }
 
    pclose(p1);
-   datafd = -1;
+   close(datafd);
+   close(pasvfd);
 
    printf("deu bom ate aqui\n");
-   
-   if (pasvfd >= 0) {
-      // info(1, "LIST, closing passive server ... %d", close(pasvfd));
-      close(pasvfd);
-      pasvfd = -1;
-   }
+}
+
+void command_DELE(char *arg, Response *res, Connection *conn) {
+   char buffer[1024];
+
+   sprintf(buffer, "rm -r %s", arg);
+
+   popen(buffer,"r");
 }
