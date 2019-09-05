@@ -186,14 +186,12 @@ void command_LIST(char *arg, Response *res, Connection *conn) {
    sprintf(buffer, "ls -l %s", path_name);
    FILE *p = popen(buffer, "r");
    while ((n = fread(file_buffer, 1, MAXDATASIZE, p)) > 0) {
-      int bytes_sent = send(datafd, file_buffer, n, 0);
-      if (bytes_sent < 0) {
+      int bytes_sent = write(datafd, file_buffer, n);
+      if (bytes_sent == -1) {
          res->error = 1;
          fill_message(res, "500 We failed to sent bytes to the client side\n");
          break;
       }
-      
-      file_buffer[n] = 0;   
    }
 
    if (res->error == 0)
