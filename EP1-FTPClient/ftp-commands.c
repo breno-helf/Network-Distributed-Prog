@@ -25,13 +25,13 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
    /*
      TO IMPLEMENT, PLEASE ADD THE COMMAND THAT WE NEED TO IMPLEMENT HERE.     
      
-   else if (strcmp(command, "DELE") == 0) {
-      NULL;
-   } else if (strcmp(command, "STOR") == 0) {
-      NULL;
-   } else if (strcmp(command, "RETR") == 0) {
-      NULL;
-   }
+     else if (strcmp(command, "DELE") == 0) {
+     NULL;
+     } else if (strcmp(command, "STOR") == 0) {
+     NULL;
+     } else if (strcmp(command, "RETR") == 0) {
+     NULL;
+     }
 
    */
 }
@@ -144,9 +144,12 @@ void command_PASV(char *arg, Response *res, Connection *conn) {
    }
    
    res->error = 0;
-   res->msg = malloc(sizeof(char) * MAXDATASIZE);
-   /* We need to print the address to connect over here, I am not sure how */
-   sprintf(res->msg, "200 Entered in Passive mode with success\n");
+   res->msg = malloc(sizeof(char) * MAXDATASIZE); 
+   char *ip_address = get_ip_adddress(conn);
+
+   sprintf(res->msg,
+           "200 Entered in Passive mode with success %s,%d,%d\n",
+           ip_address, connect_port / 256, connect_port % 256);
 }
 
 void command_TYPE(char *arg, Response *res, Connection *conn) {

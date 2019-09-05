@@ -6,6 +6,7 @@
 
 #define _GNU_SOURCE
 #include <strings.h>
+#include <arpa/inet.h>
 #include "ftp-utils.h"
 
 /* Gets a parsed command and executes the specified action, filling response

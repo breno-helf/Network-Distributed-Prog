@@ -25,10 +25,24 @@ void fill_message(Response *res, const char *message) {
 }
 
 char *turn_upper(char *str) {
-  unsigned char *p = (unsigned char *)str;
-  while (*p) {
-     *p = toupper(*p);
+   unsigned char *p = (unsigned char *)str;
+   while (*p) {
+      *p = toupper(*p);
       p++;
-  }
-  return str;
+   }
+   return str;
+}
+
+char *get_ip_adddress(Connection *conn) {
+   socklen_t addr_size = sizeof(struct sockaddr_in);
+   struct sockaddr_in addr;
+   getsockname(conn->socket_id, (struct sockaddr *)&addr, &addr_size);
+ 
+   char* IP_address = inet_ntoa(addr.sin_addr);
+   for (char *st = IP_address; *st != '\0'; ++st) {
+      if (*st == '.')
+         *st = ',';
+   }
+
+   return IP_address;    
 }

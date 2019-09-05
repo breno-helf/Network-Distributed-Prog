@@ -62,4 +62,8 @@ void fill_message(Response *res, const char *message);
 /* Make a string all upper case */
 char *turn_upper(char *str);
 
+/* Calculate the current up address and return it with , in place of .
+   Uses as base the IP of the socked in connection conn */
+char *get_ip_adddress(Connection *conn);
+
 #endif
