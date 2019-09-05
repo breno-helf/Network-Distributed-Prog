@@ -81,6 +81,10 @@ void command_QUIT(char *arg, Response *res, Connection *conn) {
    write(conn->socket_id, res->msg, strlen(res->msg));
    fprintf(stderr, "[Client %d] - %s\n", conn->socket_id, res->msg);
    close(conn->socket_id);
+   if (conn->pasvfd >= 0) {
+      close(conn->pasvfd);
+      conn->pasvfd = -1;
+   }
    free(res->msg);
    free(conn->username);
    exit(0);
@@ -138,6 +142,11 @@ void command_PASV(char *arg, Response *res, Connection *conn) {
       fill_message(res, "500 Failed make socket listen\n");
       return;      
    }
+
+   res->error = 0;
+   res->msg = malloc(sizeof(char) * MAXDATASIZE);
+   /* We need to print the address to connect over here, I am not sure how */
+   sprintf(res->msg, "200 Entered in Passive mode with success\n");
 }
 
 void command_TYPE(char *arg, Response *res, Connection *conn) {
