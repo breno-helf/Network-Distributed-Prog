@@ -228,7 +228,7 @@ void command_RETR(char *arg, Response *res, Connection *conn) {
    int n;
    int datafd;
    
-   datafd = accept(pasvfd, (struct sockaddr *)NULL, NULL);
+   datafd = accept(conn->pasvfd, (struct sockaddr *)NULL, NULL);
    sprintf(buffer, "cat %s", arg);
 
    fill_message(res, "");
@@ -247,7 +247,6 @@ void command_RETR(char *arg, Response *res, Connection *conn) {
    pclose(p1);
    close(datafd);
    close(conn->pasvfd);
-   datafd = -1;
-   pasvfd = -1;
+   conn->pasvfd = -1;
 }
 
