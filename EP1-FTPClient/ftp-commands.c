@@ -1,13 +1,5 @@
 #define _GNU_SOURCE
 #include "ftp-commands.h"
-#include "ftp-utils.h"
-#include <strings.h>
-#include <string.h>
-
-
-int pasvfd, datafd;
-
-struct sockaddr_in pasvaddr;
 
 void handle_command(char *command, char *arg, Response *res, Connection *conn) {
    if (strcmp(command, "USER") == 0) {
@@ -234,7 +226,8 @@ void command_RETR(char *arg, Response *res, Connection *conn) {
    char buffer[1024];
    char file_buffer[1024];
    int n;
-
+   int datafd;
+   
    datafd = accept(pasvfd, (struct sockaddr *)NULL, NULL);
    sprintf(buffer, "cat %s", arg);
 
@@ -253,7 +246,7 @@ void command_RETR(char *arg, Response *res, Connection *conn) {
 
    pclose(p1);
    close(datafd);
-   close(pasvfd);
+   close(conn->pasvfd);
    datafd = -1;
    pasvfd = -1;
 }
