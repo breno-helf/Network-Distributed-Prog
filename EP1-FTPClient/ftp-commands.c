@@ -176,8 +176,8 @@ void command_LIST(char *arg, Response *res, Connection *conn) {
 
    write_client(conn->socket_id, "150 Opening ASCII mode data connection for file list\n");
     
-   char path_name[1024];
-   char buffer[1024];
+   char path_name[MAXDATASIZE];
+   char buffer[MAXDATASIZE];
    char file_buffer[1];
 
    /* How much we've read */
@@ -218,7 +218,6 @@ void command_LIST(char *arg, Response *res, Connection *conn) {
       close(conn->pasvfd);
       close(datafd);
       conn->pasvfd = -1;
-      datafd = -1;
    }
 }
 
@@ -300,7 +299,6 @@ void command_RETR(char *arg, Response *res, Connection *conn) {
       close(conn->pasvfd);
       close(datafd);
       conn->pasvfd = -1;
-      datafd = -1;
    }
 }
 
