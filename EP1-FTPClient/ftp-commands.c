@@ -178,37 +178,32 @@ void command_LIST(char *arg, Response *res, Connection *conn) {
     
    char path_name[MAXDATASIZE];
    char buffer[MAXDATASIZE];
-   char file_buffer[1];
+   char file_buffer[MAXDATASIZE];
 
    /* How much we've read */
    int n;
-   int print = 0;
 
    res->error = 0;
    getcwd(path_name, sizeof(path_name));
    sprintf(buffer, "ls -l %s", path_name);
    FILE *p = popen(buffer, "r");
-   while ((n = fread(file_buffer, 1, 1, p)) > 0) {
-
-      if (*file_buffer == '\n') {
-         if (print == 0) {
-            print = 1;
-            continue;
-         }
-         write(datafd, "\r", n);
-      }
-
-      if (print==1) {
-         int bytes_sent = write(datafd, file_buffer, n);
-      
-         if (bytes_sent == -1) {
-            res->error = 1;
-            fill_message(res, "500 We failed to sent bytes to the client side\n");
-            break;
-         }
-      }
+   while ((n = fread(file_buffer, 1, MAXDATASIZE, p)) > 0) {
+     int cur = 0;
+     while (cur < n) {
+       if (file_buffer[cur] == '\n')
+	 write(datafd, "\r", 1);
+       
+       int bytes_sent = write(datafd, file_buffer + cur++, 1);
+       
+       if (bytes_sent == -1) {
+	 res->error = 1;
+	 fill_message(res, "500 We failed to sent bytes to the client side\n");
+	 break;
+       }
+     }
+     if (cur < n) break;
    }
-
+   
    if (res->error == 0)
       fill_message(res, "226 Transfer complete\n");
    
