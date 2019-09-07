@@ -22,6 +22,8 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
       command_RMD(arg, res, conn);
    } else if (strcmp(command, "RETR") == 0) {
       command_RETR(arg, res, conn);
+   } else if (strcmp(command, "STOR") == 0) {
+      command_STOR(arg, res, conn);
    } else {
       res->error = 1;
       res->msg = malloc(sizeof(char) * MAXDATASIZE);
@@ -268,12 +270,18 @@ void command_RETR(char *arg, Response *res, Connection *conn) {
       return;
    }
 
+   char teste[1024];
+
+   sprintf(teste, "150 Opening BINARY mode data connection for %s\n", arg);
+
+   write_client(conn->socket_id, teste);
+
    char buffer[1024];
    /* How much we've read */
    int n;
 
    res->error = 0;
-   FILE *file = fopen(arg, "w");
+   FILE *file = fopen(arg, "r");
 
    if (file == NULL) {
       res->error = 1;
@@ -298,7 +306,7 @@ void command_RETR(char *arg, Response *res, Connection *conn) {
    }
 
    if (res->error == 0) {
-      fill_message(res, "200 Sucess sending the file\n");
+      fill_message(res, "226 Transfer complete\n");
    }
 
    fclose(file);
@@ -325,12 +333,16 @@ void command_STOR(char *arg, Response *res, Connection *conn) {
       return;
    }
 
+   printf("passou\n");
+
    char buffer[1024];
    /* How much we've read */
    int n;
 
    res->error = 0;
    FILE *file = fopen(arg, "w");
+
+   printf("passou2\n");
 
    if (file == NULL) {
       res->error = 1;
@@ -343,6 +355,14 @@ void command_STOR(char *arg, Response *res, Connection *conn) {
       return;
    }
 
+   printf("passou3\n");
+
+   char teste[1024];
+
+   sprintf(teste, "150 Opening BINARY mode data connection for %s\n", arg);
+
+   write_client(conn->socket_id, teste);
+
    int filefd = fileno(file);
    while ((n = read(datafd, buffer, sizeof(buffer))) > 0) {
       int bytes_written = write(filefd, buffer, n); 
@@ -354,7 +374,7 @@ void command_STOR(char *arg, Response *res, Connection *conn) {
    }
 
    if (res->error == 0)
-      fill_message(res, "200 We had success receiving bytes and storing it in a file.\n");
+      fill_message(res, "226 Transfer complete\n");
    
    fclose(file);
    close(datafd);
