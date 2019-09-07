@@ -44,3 +44,16 @@ char *get_ip_adddress(Connection *conn) {
 
    return IP_address;    
 }
+
+int transform_LF_CRLF(char *LF_str, char *CRLF_str) {
+   int i, j;
+   for (i = 0, j = 0; LF_str[i] != '\0'; i++, j++) {
+      if (LF_str[i] == '\n') {
+         CRLF_str[j++] = '\r';
+      }
+      CRLF_str[j] = LF_str[i];      
+   }
+   CRLF_str[j] = '\0';
+   
+   return j;
+}

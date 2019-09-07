@@ -181,41 +181,37 @@ void command_LIST(char *arg, Response *res, Connection *conn) {
    char path_name[MAXDATASIZE];
    char buffer[MAXDATASIZE];
    char file_buffer[MAXDATASIZE];
-
+   char CRLF_file_buffer[2 * MAXDATASIZE];
    /* How much we've read */
-   int n, bytes_sent;
-   int dont_print_total = 0;
-
+   int n;
+   int first_line = -1;
+   int bytes_sent;
+   
    res->error = 0;
    getcwd(path_name, sizeof(path_name));
    sprintf(buffer, "ls -l %s", path_name);
    FILE *p = popen(buffer, "r");
    while ((n = fread(file_buffer, 1, MAXDATASIZE, p)) > 0) {
-      int cur = 0;
-      while (cur < n) {
-         if (file_buffer[cur] == '\n') {
-            if (dont_print_total) {
-	            write(datafd, "\r", 1);
-            } else if (!dont_print_total) {
-               dont_print_total = 1;
-               cur++;
-               continue;
-            }
-         }
-       
-         if (dont_print_total) {
-            bytes_sent = write(datafd, file_buffer + cur++, 1);
-         } else if (!dont_print_total){
-            cur++;
-         }
+      file_buffer[n] = '\0';
       
-         if (bytes_sent == -1) {
-            res->error = 1;
-            fill_message(res, "500 We failed to sent bytes to the client side\n");
-            break;
+      int m = transform_LF_CRLF(file_buffer, CRLF_file_buffer);
+      if (first_line == -1) {
+         char *newline = strchr(CRLF_file_buffer, '\n');
+         if (newline != NULL) {
+            first_line = newline - CRLF_file_buffer;
+            bytes_sent = write(datafd, newline + 1, m - first_line - 1);
+         } else {
+            continue;
          }
+      } else {
+         bytes_sent = write(datafd, CRLF_file_buffer, m);
       }
-      if (cur < n) break;
+      
+      if (bytes_sent == -1) {
+         res->error = 1;
+         fill_message(res, "500 We failed to sent bytes to the client side\n");
+         break;
+      }
    }
    
    if (res->error == 0)
@@ -333,16 +329,12 @@ void command_STOR(char *arg, Response *res, Connection *conn) {
       return;
    }
 
-   printf("passou\n");
-
    char buffer[1024];
    /* How much we've read */
    int n;
 
    res->error = 0;
    FILE *file = fopen(arg, "w");
-
-   printf("passou2\n");
 
    if (file == NULL) {
       res->error = 1;
@@ -354,8 +346,6 @@ void command_STOR(char *arg, Response *res, Connection *conn) {
       }
       return;
    }
-
-   printf("passou3\n");
 
    char teste[1024];
 

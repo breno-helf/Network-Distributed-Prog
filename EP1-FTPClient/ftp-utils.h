@@ -66,4 +66,9 @@ char *turn_upper(char *str);
    Uses as base the IP of the socked in connection conn */
 char *get_ip_adddress(Connection *conn);
 
+/* Transform all \n of string LF_str to \r\n, it assumes that the string
+   CRLF_str has enough allocated memory for that. Return the size of the 
+   new string */
+int transform_LF_CRLF(char *LF_str, char *CRLF_str);
+
 #endif
