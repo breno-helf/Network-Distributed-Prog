@@ -36,13 +36,7 @@ char *get_ip_adddress(Connection *conn) {
    struct sockaddr_in addr;
    getsockname(conn->socket_id, (struct sockaddr *)&addr, &addr_size);
  
-   char* IP_address = inet_ntoa(addr.sin_addr);
-   for (char *st = IP_address; *st != '\0'; ++st) {
-      if (*st == '.')
-         *st = ',';
-   }
-
-   return IP_address;    
+   return inet_ntoa(addr.sin_addr);;    
 }
 
 int transform_LF_CRLF(char *LF_str, char *CRLF_str) {

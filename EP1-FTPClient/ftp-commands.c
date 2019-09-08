@@ -149,6 +149,10 @@ void command_PASV(char *arg, Response *res, Connection *conn) {
    res->error = 0;
    res->msg = malloc(sizeof(char) * MAXDATASIZE); 
    char *ip_address = get_ip_adddress(conn);
+   for (char *st = ip_address; *st != '\0'; ++st) {
+      if (*st == '.')
+         *st = ',';
+   }
 
    sprintf(res->msg,
            "227 Entering Passive Mode (%s,%d,%d).\n",
