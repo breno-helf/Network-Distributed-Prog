@@ -14,9 +14,6 @@
 #include "ftp-utils.h"
 #include "ftp-commands.h"
 
-/* String for first contact message */
-const char *first_contact = "220 FTP Server (Serverzao_da_massa) [::ffff:127.0.0.1]\n";
-
 int main (int argc, char **argv) {
    /* Two sockets, one that will wait for a connection and other
     * that will stabilish the connection with a specific client */
@@ -30,6 +27,7 @@ int main (int argc, char **argv) {
    char recvline[MAXLINE + 1];
    char command[MAXDATASIZE];
    char arg[MAXDATASIZE];
+   char first_contact[MAXDATASIZE];
    Response *res = (Response *)malloc(sizeof(Response));
    res->error = 0;
    Connection *conn = (Connection *)malloc(sizeof(Connection));
@@ -156,6 +154,12 @@ int main (int argc, char **argv) {
 
          /* Making first contact and waiting for login */
          conn->socket_id = connfd;
+         sprintf(first_contact,
+                 "220 FTP Server (Serverzao_da_massa) [::ffff:%s]\n",
+                 get_ip_address(conn));
+
+         printf("--> %s\n", first_contact);
+         
          write(connfd, first_contact, strlen(first_contact));
          while ((n = read(connfd, recvline, MAXLINE)) > 0) {            
             recvline[n] = '\0';
