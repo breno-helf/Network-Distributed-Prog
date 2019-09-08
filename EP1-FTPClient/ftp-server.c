@@ -158,8 +158,6 @@ int main (int argc, char **argv) {
          sprintf(first_contact,
                  "220 FTP Server (Serverzao_da_massa) [::ffff:%s]\n",
                  get_ip_address(conn));
-
-         printf("--> %s\n", first_contact);
          
          write(connfd, first_contact, strlen(first_contact));
          while ((n = read(connfd, recvline, MAXLINE)) > 0) {            
