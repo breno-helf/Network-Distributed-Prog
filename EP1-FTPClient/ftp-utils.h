@@ -11,6 +11,7 @@
 #include <string.h>
 #include <netdb.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -70,5 +71,12 @@ char *get_ip_address(Connection *conn);
    CRLF_str has enough allocated memory for that. Return the size of the 
    new string */
 int transform_LF_CRLF(char *LF_str, char *CRLF_str);
+
+/* Checks if the path is a file or a directory. Returns 1 if it is Directory
+   or 0 if it is a File */
+int FileOrDir(const char* FileDir);
+
+/* Checks if the path exists. Returns 0 if it exits or -1 if it doesn't */
+int FileOrDirExist (const char* FileDir);
 
 #endif

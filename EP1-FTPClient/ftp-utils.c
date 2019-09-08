@@ -51,3 +51,14 @@ int transform_LF_CRLF(char *LF_str, char *CRLF_str) {
    
    return j;
 }
+
+int FileOrDir(const char* FileDir) {
+   struct stat path;
+   stat(FileDir, &path);
+   return S_ISDIR(path.st_mode);
+}
+
+int FileOrDirExist (const char* FileDir) {
+   struct stat path;
+   return lstat(FileDir,&path);
+}

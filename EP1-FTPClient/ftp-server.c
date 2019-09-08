@@ -6,7 +6,8 @@
  * Based on example eco server provided by 
  * Prof. Daniel Batista <batista@ime.usp.br>
  *
- * TODO: don't forget to put the running instructions here.
+ * Para executar, deve-se rodar o arquivo "ftp-server" com o argumento sendo
+ * uma porta a qual receberá conexões. Exemplo: "./ftp-server 8000".
  * 
  */
 
