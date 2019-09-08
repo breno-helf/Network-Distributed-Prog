@@ -14,10 +14,11 @@
     uma porta para ser utilizada pelo socket "listenfd" o qual receberá conexões.
     Exemplo: "./ftp-server 8000".
     4. Para abrir conexão com o servidor, deve-se utilizar a porta passada como
-    argumento durante a execução do mesmo.
+    argumento no momento da execução do mesmo.
 
 - Testes:
-    Os testes rodados pela dupla foram realizados por meio do protocolo telnet e
+    Os testes rodados pela dupla foram realizados por meio do protocolo telnet e ftp 
+direto na shell.
 
 - Comandos implementados:
     USER
@@ -59,7 +60,7 @@ da função, o atual caminho o qual está sendo trabalhado.
 cia de dados, foi gerado, com auxílio da função "rand()", um número x tal que 1024<=x<=65535. Após a 
 geração da porta, um socket chamado "pasvfd" e devidamente criado para poder ouvir nesta porta. Uma
 mensagem é enviada para o cliente com o endereço de IP do server junto a mais duas variáveis separadas
-por vírgula, no qual a multiplicação da primeira por 256, mais a segunda resulta no número da porta no
+por vírgula, no qual a multiplicação da primeira por 256, somada a segunda resulta no número da porta no
 qual o socket "pasvfd" está "escutando". Exemplo de resposta ao cliente: "227 Entering Passive Mode
 (127,0,0,1,251,209).".
 
