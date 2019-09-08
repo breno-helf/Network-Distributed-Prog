@@ -64,7 +64,7 @@ char *turn_upper(char *str);
 
 /* Calculate the current up address and return it with , in place of .
    Uses as base the IP of the socked in connection conn */
-char *get_ip_adddress(Connection *conn);
+char *get_ip_address(Connection *conn);
 
 /* Transform all \n of string LF_str to \r\n, it assumes that the string
    CRLF_str has enough allocated memory for that. Return the size of the 

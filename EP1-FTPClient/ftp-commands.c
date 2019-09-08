@@ -148,7 +148,7 @@ void command_PASV(char *arg, Response *res, Connection *conn) {
    
    res->error = 0;
    res->msg = malloc(sizeof(char) * MAXDATASIZE); 
-   char *ip_address = get_ip_adddress(conn);
+   char *ip_address = get_ip_address(conn);
    for (char *st = ip_address; *st != '\0'; ++st) {
       if (*st == '.')
          *st = ',';
@@ -277,6 +277,7 @@ void command_RETR(char *arg, Response *res, Connection *conn) {
    write_client(conn->socket_id, teste);
 
    char buffer[1024];
+   char CRLF_buffer[2 * MAXDATASIZE];
    /* How much we've read */
    int n;
 
@@ -297,7 +298,10 @@ void command_RETR(char *arg, Response *res, Connection *conn) {
    int filefd = fileno(file);
 
    while ((n = read(filefd, buffer, sizeof(buffer))) > 0) {
-      int bytes_written = write(datafd, buffer, n); 
+      buffer[n] = '\0';
+      int m = transform_LF_CRLF(buffer, CRLF_buffer);
+      
+      int bytes_written = write(datafd, CRLF_buffer, m); 
       if (bytes_written == -1) {
          res->error = 1;
          fill_message(res, "500 We failed to write bytes to the socket\n");

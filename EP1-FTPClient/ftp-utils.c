@@ -31,7 +31,7 @@ char *turn_upper(char *str) {
    return str;
 }
 
-char *get_ip_adddress(Connection *conn) {
+char *get_ip_address(Connection *conn) {
    socklen_t addr_size = sizeof(struct sockaddr_in);
    struct sockaddr_in addr;
    getsockname(conn->socket_id, (struct sockaddr *)&addr, &addr_size);
