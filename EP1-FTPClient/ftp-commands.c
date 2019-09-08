@@ -119,7 +119,7 @@ void command_PASV(char *arg, Response *res, Connection *conn) {
    }
 
    srand(time(NULL));
-   int connect_port = (rand() % 64511) + 1024;
+   int connect_port = (rand() % 64512) + 1024;
    struct sockaddr_in pasvaddr;
    bzero(&pasvaddr, sizeof(pasvaddr));
    pasvaddr.sin_family = AF_INET;
