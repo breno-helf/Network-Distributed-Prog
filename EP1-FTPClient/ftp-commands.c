@@ -29,14 +29,6 @@ void handle_command(char *command, char *arg, Response *res, Connection *conn) {
       res->msg = malloc(sizeof(char) * MAXDATASIZE);
       sprintf(res->msg, "500 %s not understood\n", command);
    }
-
-   /*
-     TO IMPLEMENT, PLEASE ADD THE COMMAND THAT WE NEED TO IMPLEMENT HERE.     
-   else if (strcmp(command, "STOR") == 0) {
-      NULL;
-   }
-
-   */
 }
 
 void command_USER(char *arg, Response *res, Connection *conn) {   
@@ -227,27 +219,51 @@ void command_LIST(char *arg, Response *res, Connection *conn) {
 }
 
 void command_DELE(char *arg, Response *res, Connection *conn) {
-   int error = remove(arg);
-   if (error != 0) {
+
+   if (FileOrDirExist(arg) != 0) {
       res->error = 1;
-      fill_message(res, "550 File unavailable\n");
+      char msg[MAXDATASIZE];
+      sprintf(msg, "550 %s: No such file or directory\n", arg);
+      fill_message(res, msg);
       return;
    }
 
+   if (FileOrDir(arg) == 1) {
+         res->error = 1;
+         char msg[MAXDATASIZE];
+         sprintf(msg, "550 %s: Not a file\n", arg);
+         fill_message(res, msg);
+         return;
+   }
+
+   remove(arg);
    res->error = 0;
-   fill_message(res, "200 Deleted file");
+   fill_message(res, "250 DELE command successful\n");
+   return;
 }
 
 void command_RMD(char *arg, Response *res, Connection *conn) {
-   int error = remove(arg);
-   if (error != 0) {
+
+   if (FileOrDirExist(arg) != 0) {
       res->error = 1;
-      fill_message(res, "550 Directory unavailable or directory not empty\n");
+      char msg[MAXDATASIZE];
+      sprintf(msg, "550 %s: No such file or directory\n", arg);
+      fill_message(res, msg);
       return;
    }
 
+   if (FileOrDir(arg) == 0) {
+      res->error = 1;
+      char msg[MAXDATASIZE];
+      sprintf(msg, "550 %s: Not a directory\n", arg);
+      fill_message(res, msg);
+      return;
+   }
+
+   remove(arg);
    res->error = 0;
-   fill_message(res, "200 Removed Directory");
+   fill_message(res, "250 RMD command successful\n");
+   return;
 }
 
 void command_RETR(char *arg, Response *res, Connection *conn) {   
@@ -266,12 +282,6 @@ void command_RETR(char *arg, Response *res, Connection *conn) {
       return;
    }
 
-   char teste[1024];
-
-   sprintf(teste, "150 Opening BINARY mode data connection for %s\n", arg);
-
-   write_client(conn->socket_id, teste);
-
    char buffer[1024];
    /* How much we've read */
    int n;
@@ -280,8 +290,10 @@ void command_RETR(char *arg, Response *res, Connection *conn) {
    FILE *file = fopen(arg, "r");
 
    if (file == NULL) {
+      char error_msg [MAXDATASIZE];
       res->error = 1;
-      fill_message(res, "451 Could not open file\n");
+      sprintf(error_msg,"550 %s: No such file or directory\n", arg);
+      fill_message(res, error_msg);
       close(datafd);
       if (conn->pasvfd >= 0) {
          close(conn->pasvfd);
@@ -289,6 +301,12 @@ void command_RETR(char *arg, Response *res, Connection *conn) {
       }
       return;
    }
+
+   char msg[MAXDATASIZE];
+
+   sprintf(msg, "150 Opening BINARY mode data connection for %s\n", arg);
+
+   write_client(conn->socket_id, msg);
 
    int filefd = fileno(file);
 
@@ -347,11 +365,11 @@ void command_STOR(char *arg, Response *res, Connection *conn) {
       return;
    }
 
-   char teste[1024];
+   char msg[MAXDATASIZE];
 
-   sprintf(teste, "150 Opening BINARY mode data connection for %s\n", arg);
+   sprintf(msg, "150 Opening BINARY mode data connection for %s\n", arg);
 
-   write_client(conn->socket_id, teste);
+   write_client(conn->socket_id, msg);
 
    int filefd = fileno(file);
    while ((n = read(datafd, buffer, sizeof(buffer))) > 0) {
