@@ -1,5 +1,9 @@
 package main
 
+/* Made by:
+ * Breno Helfstein Moura - 9790972
+ * Matheus Barcellos de Castro Cunha - 11208238
+**/
 import (
 	"io/ioutil"
 	"log"
