@@ -14,6 +14,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
+    "reflect"
 
 	"../utils"
 )
@@ -187,4 +189,36 @@ func SendChunk(connection net.Conn, r io.Reader, stop int) {
 			fmt.Println("Error sending chunk:", err)
 		}
 	}
+}
+
+func Ping(connection net.Conn, masterslave bool) (bool){ //True = master | False = slave
+	if (masterslave) {
+        timer := time.Now().UnixNano()/1000000
+		for {
+            connection.Write([]byte("Ping"))
+            timer_aux := time.Now().UnixNano()/1000000
+			buffer := make([]byte, 1024)
+            rcv,_ := connection.Read(buffer)
+            if reflect.DeepEqual(buffer[:rcv], []byte("Pong")) {
+                break
+            } else if timer_aux - timer > 1000 {
+                return false
+            }
+		}
+	} else {
+        timer := time.Now().UnixNano()/1000000
+		for {
+            timer_aux := time.Now().UnixNano()/1000000
+            buffer := make([]byte, 1024)
+            rcv, _ := connection.Read(buffer)
+            if reflect.DeepEqual(buffer[:rcv], []byte("Ping")) {
+                connection.Write([]byte("Pong"))
+                break
+            } else if timer_aux - timer > 1000 {
+                return false
+            }
+		}
+    }
+
+    return true //Returns true if the conexion is OK
 }
