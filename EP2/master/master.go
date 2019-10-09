@@ -1,4 +1,4 @@
-package main
+package master
 
 /* Made by:
  * Breno Helfstein Moura - 9790972
@@ -13,9 +13,9 @@ import (
 	"strconv"
 	"strings"
 
-	"./commands"
-	"./tcp"
-	"./utils"
+	"../commands"
+	"../tcp"
+	"../utils"
 )
 
 func generateChunks(filename string, ch chan<- utils.Chunk, chunkSize int) {
@@ -83,7 +83,7 @@ func defineChunkSize(lineNumber int) int {
 	return lineNumber / 100
 }
 
-func handleCommand(conn net.Conn, msg string, ctx utils.Context) error {
+func handleCommand(conn net.Conn, msg string, ctx *utils.Context) error {
 	tokens := strings.Fields(msg)
 	cmd := tokens[0]
 	switch cmd {
@@ -103,7 +103,7 @@ func handleCommand(conn net.Conn, msg string, ctx utils.Context) error {
 	return nil
 }
 
-func handleConnection(conn net.Conn, ctx utils.Context) {
+func handleConnection(conn net.Conn, ctx *utils.Context) {
 	reader := bufio.NewReader(conn)
 	for {
 		buffer, err := reader.ReadBytes('\n')
@@ -119,16 +119,17 @@ func handleConnection(conn net.Conn, ctx utils.Context) {
 	}
 }
 
-func master(listFilename string, myIP string) {
+// Master executes the behaviour of the master node
+func Master(listFilename string, myIP string) {
 	// This channel will carry the chunks that will be sent to the other computers
 	chunksChannel := make(chan utils.Chunk, 10)
 	lineNumber := countLines(listFilename)
 	chunkSize := defineChunkSize(lineNumber)
-	ctx := utils.Context{true, true, []string{myIP}, myIP, chunksChannel}
+	ctx := utils.NewContext(true, true, []string{myIP}, myIP, myIP, chunksChannel)
 
 	go generateChunks(listFilename, chunksChannel, chunkSize)
 
-	listener, err := net.Listen("tcp", ":8042")
+	listener, err := net.Listen("tcp", utils.HandlerPort)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -141,5 +142,4 @@ func master(listFilename string, myIP string) {
 	for conn := range connCh {
 		go handleConnection(conn, ctx)
 	}
-
 }

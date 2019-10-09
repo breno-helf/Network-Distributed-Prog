@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"sync"
 )
 
 // Chunk is the chunk to be ordered by some node
@@ -19,15 +20,73 @@ type Chunk struct {
 
 // Context is the current scenario the node is seeing the network in
 type Context struct {
-	IsMasterNode bool
-	IsLeader     bool
-	Nodes        []string
-	Leader       string
-	Ch           chan Chunk
+	isMasterNode bool
+	isLeader     bool
+	nodes        []string
+	leader       string
+	masterNode   string
+	ch           chan Chunk
+	mu           sync.RWMutex
 }
 
 // BufferSize is the default buffer size
 const BufferSize = 256
+
+// HandlerPort is the default port for handlers
+const HandlerPort = ":8042"
+
+// NewContext create a new context
+func NewContext(
+	isMasterNode bool,
+	isLeader bool,
+	nodes []string,
+	leader string,
+	masterNode string,
+	ch chan Chunk) *Context {
+	return &Context{
+		isMasterNode: isMasterNode,
+		isLeader:     isLeader,
+		nodes:        nodes,
+		leader:       leader,
+		masterNode:   masterNode,
+		ch:           ch,
+	}
+}
+
+// AddNode append a new node to the Nodes slice
+func (ctx *Context) AddNode(node string) {
+	ctx.mu.Lock()
+	defer ctx.mu.Unlock()
+	ctx.nodes = append(ctx.nodes, node)
+}
+
+// Leader returns the current leader
+func (ctx *Context) Leader() string {
+	ctx.mu.RLock()
+	defer ctx.mu.RUnlock()
+	return ctx.leader
+}
+
+// ChangeLeader changes de current leader
+func (ctx *Context) ChangeLeader(leader string) {
+	ctx.mu.Lock()
+	defer ctx.mu.Unlock()
+	ctx.leader = leader
+}
+
+// MasterNode returns the master node
+func (ctx *Context) MasterNode() string {
+	ctx.mu.RLock()
+	defer ctx.mu.RUnlock()
+	return ctx.masterNode
+}
+
+// IsMasterNode return if it is a master node
+func (ctx *Context) IsMasterNode() bool {
+	ctx.mu.RLock()
+	defer ctx.mu.RUnlock()
+	return ctx.isMasterNode
+}
 
 // Createfile creates the "config" in the script folder
 func Createfile(s string) {

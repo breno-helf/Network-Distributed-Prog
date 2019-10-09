@@ -36,19 +36,6 @@ func ClientConns(listener net.Listener) chan net.Conn {
 	return ch
 }
 
-func HandleConn(client net.Conn) {
-	b := bufio.NewReader(client)
-	for {
-		line, err := b.ReadBytes('\n')
-		if err != nil {
-			break
-		}
-		client.Write(line)
-		fmt.Printf("[%v sent:] ", client.RemoteAddr())
-		fmt.Printf("%s\n", line)
-	}
-}
-
 func SendFile(connection net.Conn) {
 	fmt.Println("A client has connected!")
 	defer connection.Close()

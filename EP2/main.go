@@ -9,16 +9,15 @@ import (
 	"log"
 	"os"
 
+	"./eventlog"
+	"./master"
+	"./slave"
 	"./utils"
 )
 
-func slave() {
-
-}
-
 func main() {
 	// Means that I have the file to be sorted and have to initialize the connections
-	initializer := false
+	masterNode := false
 	var listFilename string
 
 	initialMachine, err := ioutil.ReadFile("address.conf")
@@ -32,13 +31,19 @@ func main() {
 	}
 
 	if len(os.Args) > 1 && string(initialMachine) == myIP {
-		initializer = true
+		masterNode = true
 		listFilename = os.Args[1]
 	}
 
-	if initializer {
-		master(listFilename, myIP)
+	for _, arg := range os.Args {
+		if arg == "-d" {
+			eventlog.ActivateLogMode()
+		}
+	}
+
+	if masterNode {
+		master.Master(listFilename, myIP)
 	} else {
-		slave()
+		slave.Slave(string(initialMachine))
 	}
 }
