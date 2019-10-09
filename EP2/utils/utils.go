@@ -11,6 +11,24 @@ import (
 	"os"
 )
 
+// Chunk is the chunk to be ordered by some node
+type Chunk struct {
+	Numbers []int
+	ID      int
+}
+
+// Context is the current scenario the node is seeing the network in
+type Context struct {
+	IsMasterNode bool
+	IsLeader     bool
+	Nodes        []string
+	Leader       string
+	Ch           chan Chunk
+}
+
+// BufferSize is the default buffer size
+const BufferSize = 256
+
 // Createfile creates the "config" in the script folder
 func Createfile(s string) {
 	_, err := os.Create(s)

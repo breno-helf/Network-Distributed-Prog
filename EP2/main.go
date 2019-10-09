@@ -37,7 +37,7 @@ func main() {
 	}
 
 	if initializer {
-		master(listFilename)
+		master(listFilename, myIP)
 	} else {
 		slave()
 	}
