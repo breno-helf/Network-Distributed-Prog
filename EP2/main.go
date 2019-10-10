@@ -44,6 +44,6 @@ func main() {
 	if masterNode {
 		master.Master(listFilename, myIP)
 	} else {
-		slave.Slave(string(initialMachine))
+		slave.Slave(string(initialMachine), myIP)
 	}
 }

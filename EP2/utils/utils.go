@@ -5,10 +5,12 @@ package utils
  * Matheus Barcellos de Castro Cunha - 11208238
 **/
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net"
-	"os"
+	"strings"
 	"sync"
 )
 
@@ -20,13 +22,12 @@ type Chunk struct {
 
 // Context is the current scenario the node is seeing the network in
 type Context struct {
-	isMasterNode bool
-	isLeader     bool
-	nodes        []string
-	leader       string
-	masterNode   string
-	ch           chan Chunk
-	mu           sync.RWMutex
+	nodes      []string
+	leader     string
+	masterNode string
+	myIP       string
+	ch         chan Chunk
+	mu         sync.RWMutex
 }
 
 // BufferSize is the default buffer size
@@ -37,19 +38,17 @@ const HandlerPort = ":8042"
 
 // NewContext create a new context
 func NewContext(
-	isMasterNode bool,
-	isLeader bool,
 	nodes []string,
 	leader string,
 	masterNode string,
+	myIP string,
 	ch chan Chunk) *Context {
 	return &Context{
-		isMasterNode: isMasterNode,
-		isLeader:     isLeader,
-		nodes:        nodes,
-		leader:       leader,
-		masterNode:   masterNode,
-		ch:           ch,
+		nodes:      nodes,
+		leader:     leader,
+		masterNode: masterNode,
+		myIP:       myIP,
+		ch:         ch,
 	}
 }
 
@@ -85,27 +84,49 @@ func (ctx *Context) MasterNode() string {
 func (ctx *Context) IsMasterNode() bool {
 	ctx.mu.RLock()
 	defer ctx.mu.RUnlock()
-	return ctx.isMasterNode
+	return ctx.masterNode == ctx.myIP
 }
 
-// Createfile creates the "config" in the script folder
-func Createfile(s string) {
-	_, err := os.Create(s)
-	if err != nil {
-		fmt.Printf("error creating config file: %v", err)
-		return
-	}
+// IsLeader return if it is the leader
+func (ctx *Context) IsLeader() bool {
+	ctx.mu.RLock()
+	defer ctx.mu.RUnlock()
+	return ctx.leader == ctx.myIP
 }
 
-// Openfile opens the "config" file and returns its file descriptor
-func Openfile(s string) *os.File {
-	f, err := os.OpenFile(s, os.O_RDWR, 0)
+// GetRemoteIP extracts just the remoteIP from a connection
+func GetRemoteIP(conn net.Conn) string {
+	return strings.Split(conn.RemoteAddr().String(), ":")[0]
+}
 
-	if err != nil {
-		fmt.Printf("error opening config file: %v", err)
-		return nil
-	}
-	return f
+// UncompressChunk decompress a received chunk
+func UncompressChunk(chunk string) ([]int, error) {
+	chunkSlice := []int{}
+	err := json.Unmarshal([]byte(chunk), &chunkSlice)
+	return chunkSlice, err
+}
+
+// CompressChunk compress a chunk to send
+func CompressChunk(chunkSlice []int) string {
+	chunk, _ := json.Marshal(chunkSlice)
+	return string(chunk)
+}
+
+// ClientConns fill in a channel with connections
+func ClientConns(listener net.Listener) chan net.Conn {
+	ch := make(chan net.Conn)
+	go func() {
+		for {
+			client, err := listener.Accept()
+			if client == nil {
+				log.Printf("Couldn't accept: %v\n", err)
+				continue
+			}
+			fmt.Printf("[One connection open]\n")
+			ch <- client
+		}
+	}()
+	return ch
 }
 
 // GetMyIP returns your external IP and gives an error if it does not find it.

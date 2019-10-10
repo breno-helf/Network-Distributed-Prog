@@ -12,7 +12,6 @@ import (
 	"net"
 	"strings"
 
-	"../commands"
 	"../tcp"
 	"../utils"
 )
@@ -22,6 +21,7 @@ func enterNetwork(ctx *utils.Context) error {
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 
 	conn.Write([]byte("ENTER\n"))
 
@@ -31,6 +31,7 @@ func enterNetwork(ctx *utils.Context) error {
 
 	if tokens[0] == "LEADER" {
 		ctx.ChangeLeader(tokens[1])
+		fmt.Println("Leader is", tokens[1])
 	} else {
 		return errors.New("Expecting LEADER message")
 	}
@@ -47,51 +48,18 @@ func messenger(ctx *utils.Context) {
 
 }
 
-func handleCommand(conn net.Conn, msg string, ctx *utils.Context) error {
-	tokens := strings.Fields(msg)
-	cmd := tokens[0]
-	switch cmd {
-	case "ENTER":
-		err := commands.ENTER(conn, ctx)
-		if err != nil {
-			return err
-		}
-	// case "LEADER":
-	// case "WORK":
-	// case "SORT":
-	// case "DIED":
-	default:
-		return fmt.Errorf("Can't handle message '%s'", msg)
-	}
-
-	return nil
-}
-
-func handleConnection(conn net.Conn, ctx *utils.Context) {
-	reader := bufio.NewReader(conn)
-	for {
-		msg, err := reader.ReadString('\n')
-		if err != nil {
-			break
-		}
-
-		err = handleCommand(conn, msg, ctx)
-		if err != nil {
-			fmt.Println(err)
-		}
-	}
-}
-
 // Slave defines the behaviour of a slave node
-func Slave(masterNode string) {
+func Slave(masterNode string, myIP string) {
 	ctx := utils.NewContext(
-		false,
-		false,
 		[]string{masterNode},
 		masterNode,
 		masterNode,
+		myIP,
 		nil,
 	)
+
+	fmt.Println("Started slave")
+	go messenger(ctx)
 
 	listener, err := net.Listen("tcp", utils.HandlerPort)
 	if err != nil {
@@ -101,10 +69,10 @@ func Slave(masterNode string) {
 
 	fmt.Println("Slave server started! Waiting for connections...")
 
-	connCh := tcp.ClientConns(listener)
+	connCh := utils.ClientConns(listener)
 
 	for conn := range connCh {
-		go handleConnection(conn, ctx)
+		go tcp.HandleConnection(conn, ctx)
 	}
 
 }

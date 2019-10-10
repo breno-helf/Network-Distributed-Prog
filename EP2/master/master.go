@@ -11,9 +11,7 @@ import (
 	"net"
 	"os"
 	"strconv"
-	"strings"
 
-	"../commands"
 	"../tcp"
 	"../utils"
 )
@@ -31,7 +29,7 @@ func generateChunks(filename string, ch chan<- utils.Chunk, chunkSize int) {
 	for fscanner.Scan() {
 		num, err := strconv.Atoi(fscanner.Text())
 		if err != nil {
-			fmt.Printf("String can't be properly converted to integer in list file: %v", err)
+			log.Printf("String can't be properly converted to integer in list file: %v\n", err)
 		}
 		currentSlice = append(currentSlice, num)
 		if len(currentSlice) == chunkSize {
@@ -83,49 +81,13 @@ func defineChunkSize(lineNumber int) int {
 	return lineNumber / 100
 }
 
-func handleCommand(conn net.Conn, msg string, ctx *utils.Context) error {
-	tokens := strings.Fields(msg)
-	cmd := tokens[0]
-	switch cmd {
-	case "ENTER":
-		err := commands.ENTER(conn, ctx)
-		if err != nil {
-			return err
-		}
-	// case "LEADER":
-	// case "WORK":
-	// case "SORT":
-	// case "DIED":
-	default:
-		return fmt.Errorf("Can't handle message '%s'", msg)
-	}
-
-	return nil
-}
-
-func handleConnection(conn net.Conn, ctx *utils.Context) {
-	reader := bufio.NewReader(conn)
-	for {
-		buffer, err := reader.ReadBytes('\n')
-		if err != nil {
-			break
-		}
-		msg := string(buffer)
-
-		err = handleCommand(conn, msg, ctx)
-		if err != nil {
-			fmt.Println(err)
-		}
-	}
-}
-
 // Master executes the behaviour of the master node
 func Master(listFilename string, myIP string) {
 	// This channel will carry the chunks that will be sent to the other computers
 	chunksChannel := make(chan utils.Chunk, 10)
 	lineNumber := countLines(listFilename)
 	chunkSize := defineChunkSize(lineNumber)
-	ctx := utils.NewContext(true, true, []string{myIP}, myIP, myIP, chunksChannel)
+	ctx := utils.NewContext([]string{myIP}, myIP, myIP, myIP, chunksChannel)
 
 	go generateChunks(listFilename, chunksChannel, chunkSize)
 
@@ -137,9 +99,10 @@ func Master(listFilename string, myIP string) {
 
 	fmt.Println("Master server started! Waiting for connections...")
 
-	connCh := tcp.ClientConns(listener)
+	connCh := utils.ClientConns(listener)
 
 	for conn := range connCh {
-		go handleConnection(conn, ctx)
+		fmt.Println("Started connection", conn.LocalAddr(), conn.RemoteAddr())
+		go tcp.HandleConnection(conn, ctx)
 	}
 }
