@@ -82,3 +82,10 @@ func WORK(conn net.Conn, ctx *utils.Context, remoteIP string) error {
 
 	return errors.New("Only master node or leader can receive a WORK order")
 }
+
+// DIED reports that a node died
+func DIED(IP string, ctx *utils.Context) (bool){ //Returns true if the dead node was the leader
+	eventlog.EventDeadNode(IP)
+	ctx.DeleteNode(IP)
+	return ctx.CompareIP(IP) 
+}

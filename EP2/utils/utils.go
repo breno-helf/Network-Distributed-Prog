@@ -91,3 +91,9 @@ func GetMyIP() (string, error) {
 	}
 	return "", errors.New("Can't find external IP")
 }
+
+//RemoveElement removes the i-th elemnt from a slice
+func RemoveElement(s []string, i int) []string {
+    s[len(s)-1], s[i] = s[i], s[len(s)-1]
+    return s[:len(s)-1]
+}
