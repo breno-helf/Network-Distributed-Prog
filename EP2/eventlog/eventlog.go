@@ -30,8 +30,8 @@ func CreateEventLogger() error {
 // EventNewNode writes in the event logger that we have a new node
 func EventNewNode(node string) {
 	if logmode {
-		msg := fmt.Sprintf("New node entered the system [%s]", node)
-		_, err := logfd.Write([]byte(msg))
+		msg := fmt.Sprintf("New node entered the system [%s]\n", node)
+		_, err := logfd.WriteString(msg)
 		if err != nil {
 			log.Println(err)
 		}
@@ -41,8 +41,8 @@ func EventNewNode(node string) {
 // EventDeadNode writes in the event logger that a node died
 func EventDeadNode(node string) {
 	if logmode {
-		msg := fmt.Sprintf("A node died [%s]", node)
-		_, err := logfd.Write([]byte(msg))
+		msg := fmt.Sprintf("A node died [%s]\n", node)
+		_, err := logfd.WriteString(msg)
 		if err != nil {
 			log.Println(err)
 		}
@@ -52,7 +52,7 @@ func EventDeadNode(node string) {
 // EventElectingLeader writes in the event logger that we are electing a new leader
 func EventElectingLeader() {
 	if logmode {
-		_, err := logfd.Write([]byte("Electing new leader"))
+		_, err := logfd.WriteString(("Electing new leader"))
 		if err != nil {
 			log.Println(err)
 		}
@@ -62,8 +62,8 @@ func EventElectingLeader() {
 // EventLeaderElected writes in the event logger that we elected a new leader
 func EventLeaderElected(node string) {
 	if logmode {
-		msg := fmt.Sprintf("We have elected a new leader [%s]", node)
-		_, err := logfd.Write([]byte(msg))
+		msg := fmt.Sprintf("We have elected a new leader [%s]\n", node)
+		_, err := logfd.WriteString(msg)
 		if err != nil {
 			log.Println(err)
 		}
@@ -73,8 +73,8 @@ func EventLeaderElected(node string) {
 // EventFinishSorting writes in the event logger that we finished sorting
 func EventFinishSorting(masterNode string) {
 	if logmode {
-		msg := fmt.Sprintf("We have finished sorting, we can find the array in [%s]", masterNode)
-		_, err := logfd.Write([]byte(msg))
+		msg := fmt.Sprintf("We have finished sorting, we can find the array in [%s]\n", masterNode)
+		_, err := logfd.WriteString(msg)
 		if err != nil {
 			log.Println(err)
 		}

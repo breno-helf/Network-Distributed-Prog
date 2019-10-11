@@ -25,16 +25,16 @@ func GetRemoteIP(conn net.Conn) string {
 }
 
 // UncompressChunk decompress a received chunk
-func UncompressChunk(chunk string) ([]int, error) {
-	chunkSlice := []int{}
-	err := json.Unmarshal([]byte(chunk), &chunkSlice)
-	return chunkSlice, err
+func UncompressChunk(chunkStr string) (Chunk, error) {
+	chunk := Chunk{}
+	err := json.Unmarshal([]byte(chunkStr), &chunk)
+	return chunk, err
 }
 
 // CompressChunk compress a chunk to send
-func CompressChunk(chunkSlice []int) string {
-	chunk, _ := json.Marshal(chunkSlice)
-	return string(chunk)
+func CompressChunk(chunk Chunk) (string, error) {
+	chunkByte, err := json.Marshal(chunk)
+	return string(chunkByte), err
 }
 
 // ClientConns fill in a channel with connections
@@ -54,7 +54,7 @@ func ClientConns(listener net.Listener) chan net.Conn {
 	return ch
 }
 
-// GetMyIP returns your external IP and gives an error if it does not find it.
+// GetMyIP returns your external IP and gives an error if it does not find it. -- Extracted from StackOverflow
 func GetMyIP() (string, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {

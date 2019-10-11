@@ -16,10 +16,9 @@ import (
 	"../utils"
 )
 
-func handleCommand(conn net.Conn, msg string, ctx *utils.Context) error {
+func handleCommand(conn net.Conn, msg string, ctx *utils.Context, ch chan bool) error {
 	tokens := strings.Fields(msg)
 	cmd := tokens[0]
-	fmt.Println("Received command", cmd)
 	switch cmd {
 	case "ENTER":
 		err := commands.ENTER(conn, ctx)
@@ -30,19 +29,34 @@ func handleCommand(conn net.Conn, msg string, ctx *utils.Context) error {
 		if len(tokens) < 2 {
 			return errors.New("LEADER command requires an argument")
 		}
-		err := commands.LEADER(conn, ctx, tokens[1])
-		if err != nil {
-			return err
-		}
+		ch <- true
+		go func(conn net.Conn, tokens []string, ctx *utils.Context) {
+			err := commands.LEADER(conn, ctx, tokens[1])
+			if err != nil {
+				log.Println(err)
+			}
+			<-ch
+		}(conn, tokens, ctx)
 	case "SORT":
-		if len(tokens) < 3 {
-			return errors.New("SORT command requires 2 arguments")
+		if len(tokens) < 2 {
+			return errors.New("SORT command requires an argument")
 		}
-		err := commands.SORT(conn, ctx, tokens[1], tokens[2])
+		err := commands.SORT(conn, ctx, tokens[1])
 		if err != nil {
 			return err
 		}
-	// case "WORK":
+	case "WORK":
+		if len(tokens) < 2 {
+			return errors.New("WORK command requires an argument")
+		}
+		ch <- true
+		go func(conn net.Conn, tokens []string, ctx *utils.Context) {
+			err := commands.WORK(conn, ctx, tokens[1])
+			if err != nil {
+				log.Println(err)
+			}
+			<-ch
+		}(conn, tokens, ctx)
 	// case "DIED":
 	default:
 		return fmt.Errorf("Can't handle message '%s'", msg)
@@ -55,14 +69,15 @@ func handleCommand(conn net.Conn, msg string, ctx *utils.Context) error {
 func HandleConnection(conn net.Conn, ctx *utils.Context) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
+	ch := make(chan bool, 5)
+	defer close(ch)
 	for {
-		buffer, err := reader.ReadBytes('\n')
+		msg, err := reader.ReadString('\n')
 		if err != nil {
 			break
 		}
-		msg := string(buffer)
 
-		err = handleCommand(conn, msg, ctx)
+		err = handleCommand(conn, msg, ctx, ch)
 		if err != nil {
 			log.Println(err)
 		}

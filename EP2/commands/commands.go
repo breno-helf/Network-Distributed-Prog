@@ -1,10 +1,14 @@
 package commands
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"sort"
+	"strings"
+	"time"
 
 	"../eventlog"
 	"../utils"
@@ -20,7 +24,7 @@ func ENTER(conn net.Conn, ctx *utils.Context) error {
 	fmt.Println("Remote address entering network", remoteIP)
 	ctx.AddNode(remoteIP)
 
-	_, err := conn.Write([]byte(fmt.Sprintf("LEADER %s\n", ctx.Leader())))
+	_, err := fmt.Fprintf(conn, "LEADER %s\n", ctx.Leader())
 
 	if err != nil {
 		return err
@@ -45,20 +49,24 @@ func LEADER(conn net.Conn, ctx *utils.Context, newLeader string) error {
 }
 
 // SORT received a chunk, and decompress it sorting and sent it back to the master
-func SORT(conn net.Conn, ctx *utils.Context, chunk string, id string) error {
+func SORT(conn net.Conn, ctx *utils.Context, chunkStr string) error {
 	remoteIP := utils.GetRemoteIP(conn)
 	if remoteIP != ctx.MasterNode() {
 		return errors.New("Only master node can send an array for sorting")
 	}
 
-	chunkSlice, err := utils.UncompressChunk(chunk)
+	chunk, err := utils.UncompressChunk(chunkStr)
 	if err != nil {
 		return err
 	}
-	sort.Ints(chunkSlice)
+	sort.Ints(chunk.Numbers)
 
-	_, err = conn.Write([]byte(fmt.Sprintf("SORTED %s %s\n", utils.CompressChunk(chunkSlice), id)))
+	chunkStr, err = utils.CompressChunk(chunk)
+	if err != nil {
+		return err
+	}
 
+	_, err = fmt.Fprintf(conn, "SORTED %s\n", chunkStr)
 	if err != nil {
 		return err
 	}
@@ -68,17 +76,60 @@ func SORT(conn net.Conn, ctx *utils.Context, chunk string, id string) error {
 
 // WORK will receive an IP that is requesting work.
 // If master will send an array for sorting
-// If just leader will redirect to master
 func WORK(conn net.Conn, ctx *utils.Context, remoteIP string) error {
-	if ctx.IsMasterNode() {
+	if !ctx.IsMasterNode() {
+		return errors.New("Only master node can receive a WORK order")
+	}
 
+	chunkToSort, ok := <-ctx.Ch()
+	if !ok {
+		ctx.SetFinalSort(true)
+		// There is no chunk to sort
 		return nil
 	}
 
-	if ctx.IsLeader() {
+	ch := make(chan utils.Chunk, 1)
+	go func(ch chan utils.Chunk, remoteIP string) {
+		workerConn, err := net.Dial("tcp", remoteIP+utils.HandlerPort)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 
-		return nil
+		chunkStr, err := utils.CompressChunk(chunkToSort)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		fmt.Fprintf(workerConn, "SORT %s\n", chunkStr)
+
+		reader := bufio.NewReader(workerConn)
+		buffer, err := reader.ReadBytes('\n')
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		msg := string(buffer)
+		tokens := strings.Fields(msg)
+
+		if tokens[0] != "SORTED" {
+			log.Println(errors.New("Received message different than SORTED"))
+			return
+		}
+
+		sortedChunk, err := utils.UncompressChunk(tokens[1])
+
+		ch <- sortedChunk
+	}(ch, remoteIP)
+
+	select {
+	case sortedChunk := <-ch:
+		utils.StoreChunk(sortedChunk)
+	case <-time.After(5 * time.Second):
+		ctx.Ch() <- chunkToSort
+		return fmt.Errorf("TIMEOUT: Machine %s timeouted during sorting of chunk %d", remoteIP, chunkToSort.ID)
 	}
 
-	return errors.New("Only master node or leader can receive a WORK order")
+	return nil
 }

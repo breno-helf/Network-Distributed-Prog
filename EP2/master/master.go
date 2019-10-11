@@ -8,9 +8,11 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"math"
 	"net"
 	"os"
 	"strconv"
+	"time"
 
 	"../tcp"
 	"../utils"
@@ -33,7 +35,10 @@ func generateChunks(filename string, ch chan<- utils.Chunk, chunkSize int) {
 		}
 		currentSlice = append(currentSlice, num)
 		if len(currentSlice) == chunkSize {
-			currentChunk := utils.Chunk{currentSlice, currentID}
+			currentChunk := utils.Chunk{
+				Numbers: currentSlice,
+				ID:      currentID,
+			}
 			ch <- currentChunk
 			currentID++
 			currentSlice = nil
@@ -41,7 +46,10 @@ func generateChunks(filename string, ch chan<- utils.Chunk, chunkSize int) {
 	}
 
 	if len(currentSlice) > 0 {
-		currentChunk := utils.Chunk{currentSlice, currentID}
+		currentChunk := utils.Chunk{
+			Numbers: currentSlice,
+			ID:      currentID,
+		}
 		ch <- currentChunk
 		currentID++
 	}
@@ -81,13 +89,37 @@ func defineChunkSize(lineNumber int) int {
 	return lineNumber / 100
 }
 
+func election(ctx *utils.Context) {
+
+}
+
+func keepElecting(ctx *utils.Context) {
+	for {
+		time.Sleep(time.Minute)
+		election(ctx)
+	}
+}
+
+func waitForFinalSort(ctx *utils.Context, maxChunk int) {
+	for !ctx.FinalSort() {
+		time.Sleep(time.Second)
+	}
+	err := utils.SortStoredChunks(maxChunk)
+	if err != nil {
+		log.Fatal(err)
+	}
+	utils.CleanTemporaryFiles()
+	os.Exit(0)
+}
+
 // Master executes the behaviour of the master node
 func Master(listFilename string, myIP string) {
 	// This channel will carry the chunks that will be sent to the other computers
 	chunksChannel := make(chan utils.Chunk, 10)
 	lineNumber := countLines(listFilename)
 	chunkSize := defineChunkSize(lineNumber)
-	ctx := utils.NewContext([]string{myIP}, myIP, myIP, myIP, chunksChannel)
+	numChunks := int(math.Ceil(float64(lineNumber) / float64(chunkSize)))
+	ctx := utils.NewContext(map[string]bool{myIP: true}, myIP, myIP, myIP, chunksChannel)
 
 	go generateChunks(listFilename, chunksChannel, chunkSize)
 
@@ -97,12 +129,16 @@ func Master(listFilename string, myIP string) {
 	}
 	defer listener.Close()
 
+	go tcp.Leader(ctx)
+	go keepElecting(ctx)
+	go waitForFinalSort(ctx, numChunks)
+
 	fmt.Println("Master server started! Waiting for connections...")
 
 	connCh := utils.ClientConns(listener)
 
 	for conn := range connCh {
-		fmt.Println("Started connection", conn.LocalAddr(), conn.RemoteAddr())
+		fmt.Println("MASTER Started connection", conn.LocalAddr(), conn.RemoteAddr())
 		go tcp.HandleConnection(conn, ctx)
 	}
 }

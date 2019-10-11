@@ -16,14 +16,14 @@ import (
 	"../utils"
 )
 
-func enterNetwork(ctx *utils.Context) error {
+func tryEnterNetwork(ctx *utils.Context) error {
 	conn, err := net.Dial("tcp", ctx.MasterNode()+utils.HandlerPort)
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 
-	conn.Write([]byte("ENTER\n"))
+	fmt.Fprintf(conn, "ENTER\n")
 
 	reader := bufio.NewReader(conn)
 	msg, err := reader.ReadString('\n')
@@ -39,19 +39,10 @@ func enterNetwork(ctx *utils.Context) error {
 	return nil
 }
 
-func messenger(ctx *utils.Context) {
-	err := enterNetwork(ctx)
-	// Keep trying to connect
-	for err != nil {
-		err = enterNetwork(ctx)
-	}
-
-}
-
 // Slave defines the behaviour of a slave node
 func Slave(masterNode string, myIP string) {
 	ctx := utils.NewContext(
-		[]string{masterNode},
+		map[string]bool{masterNode: true},
 		masterNode,
 		masterNode,
 		myIP,
@@ -59,7 +50,14 @@ func Slave(masterNode string, myIP string) {
 	)
 
 	fmt.Println("Started slave")
-	go messenger(ctx)
+
+	// Keep trying to connect
+	go func(ctx *utils.Context) {
+		err := tryEnterNetwork(ctx)
+		for err != nil {
+			err = tryEnterNetwork(ctx)
+		}
+	}(ctx)
 
 	listener, err := net.Listen("tcp", utils.HandlerPort)
 	if err != nil {
