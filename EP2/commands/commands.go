@@ -5,10 +5,17 @@ import (
 	"fmt"
 	"net"
 	"sort"
+	"time"
+	"reflect"
 
 	"../eventlog"
 	"../utils"
 )
+
+//HEARTBTIME HearBeat timeout 
+const HEARTBTIME = 5000
+//PINGTIME PING timeout 
+const PINGTIME = 5000
 
 // ENTER command will allow someone to enter in the network
 func ENTER(conn net.Conn, ctx *utils.Context) error {
@@ -88,4 +95,52 @@ func DIED(IP string, ctx *utils.Context) (bool){ //Returns true if the dead node
 	eventlog.EventDeadNode(IP)
 	ctx.DeleteNode(IP)
 	return ctx.CompareIP(IP) 
+}
+
+// PING returns if nodes are connected
+func PING(connection net.Conn, masterslave bool) (bool){ //True = master | False = slave
+	if (masterslave) {
+        timer := time.Now().UnixNano()/1000000
+		for {
+            connection.Write([]byte("PING"))
+            timerAux := time.Now().UnixNano()/1000000
+			buffer := make([]byte, 1024)
+            rcv,_ := connection.Read(buffer)
+            if reflect.DeepEqual(buffer[:rcv], []byte("PONG")) {
+                break
+            } else if timerAux - timer > 5000 {
+                return false
+            }
+		}
+	} else {
+        timer := time.Now().UnixNano()/1000000
+		for {
+            timerAux := time.Now().UnixNano()/1000000
+            buffer := make([]byte, 1024)
+            rcv, _ := connection.Read(buffer)
+            if reflect.DeepEqual(buffer[:rcv], []byte("PING")) {
+                connection.Write([]byte("PONG"))
+                break
+            } else if timerAux - timer > 1000 {
+                return false
+            }
+		}
+    }
+    return true //Returns true if the conexion is OK
+}
+
+//HeartBeat periodically calls PING and return false if conexion fails
+func HeartBeat(connection net.Conn, masterslave bool) (bool){
+    for {
+        timer := time.Now().UnixNano()/1000000
+        for {
+            timerAux := time.Now().UnixNano()/1000000
+            if timerAux-timer >= HEARTBTIME {
+                if PING(connection, masterslave) {
+                    break;
+                } 
+                return false
+            }
+        }
+    }
 }
