@@ -22,13 +22,14 @@ import (
 	"../utils"
 )
 
-func generateChunks(ctx *utils.Context, filename string, ch chan<- utils.Chunk, chunkSize int) {
+func generateChunks(ctx *utils.Context, filename string, ch chan<- utils.Chunk, chunkSize int, numChunks int) {
 	f, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(utils.MASTERERROR, err)
 	}
 	defer f.Close()
 
+	ctx.Wg().Add(numChunks)
 	fscanner := bufio.NewScanner(f)
 	currentSlice := make([]int, 0)
 	currentID := 0
@@ -45,7 +46,6 @@ func generateChunks(ctx *utils.Context, filename string, ch chan<- utils.Chunk, 
 			}
 			ch <- currentChunk
 			currentID++
-			ctx.Wg().Add(1)
 			currentSlice = nil
 		}
 	}
@@ -57,7 +57,6 @@ func generateChunks(ctx *utils.Context, filename string, ch chan<- utils.Chunk, 
 		}
 		ch <- currentChunk
 		currentID++
-		ctx.Wg().Add(1)
 	}
 
 	close(ch)
@@ -172,7 +171,7 @@ func Master(listFilename string, myIP string) {
 	numChunks := int(math.Ceil(float64(lineNumber) / float64(chunkSize)))
 	ctx := utils.NewContext(map[string]bool{myIP: true}, myIP, myIP, myIP, chunksChannel)
 
-	go generateChunks(ctx, listFilename, chunksChannel, chunkSize)
+	go generateChunks(ctx, listFilename, chunksChannel, chunkSize, numChunks)
 
 	listener, err := net.Listen("tcp", utils.HandlerPort)
 	if err != nil {
