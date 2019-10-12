@@ -6,6 +6,7 @@ package master
 **/
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -16,14 +17,15 @@ import (
 	"sync"
 	"time"
 
+	"../leader"
 	"../tcp"
 	"../utils"
 )
 
-func generateChunks(filename string, ch chan<- utils.Chunk, chunkSize int) {
+func generateChunks(ctx *utils.Context, filename string, ch chan<- utils.Chunk, chunkSize int) {
 	f, err := os.Open(filename)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(utils.MASTERERROR, err)
 	}
 	defer f.Close()
 
@@ -43,6 +45,7 @@ func generateChunks(filename string, ch chan<- utils.Chunk, chunkSize int) {
 			}
 			ch <- currentChunk
 			currentID++
+			ctx.Wg().Add(1)
 			currentSlice = nil
 		}
 	}
@@ -54,6 +57,7 @@ func generateChunks(filename string, ch chan<- utils.Chunk, chunkSize int) {
 		}
 		ch <- currentChunk
 		currentID++
+		ctx.Wg().Add(1)
 	}
 
 	close(ch)
@@ -62,7 +66,7 @@ func generateChunks(filename string, ch chan<- utils.Chunk, chunkSize int) {
 func countLines(filename string) int {
 	f, err := os.Open(filename)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(utils.MASTERERROR, err)
 	}
 	defer f.Close()
 
@@ -104,7 +108,7 @@ func election(ctx *utils.Context) {
 		go func(ch <-chan bool, remoteIP string) {
 			conn, err := net.Dial("tcp", remoteIP+utils.HandlerPort)
 			if err != nil {
-				log.Println(err)
+				log.Println(utils.ELECTIONERROR, err)
 			}
 			defer conn.Close()
 
@@ -113,12 +117,12 @@ func election(ctx *utils.Context) {
 			reader := bufio.NewReader(conn)
 			msg, err := reader.ReadString('\n')
 			if err != nil {
-				log.Println(err)
+				log.Println(utils.ELECTIONERROR, err)
 			}
 
 			tokens := strings.Fields(msg)
 			if len(tokens) < 2 {
-				log.Println("Can't cast vote")
+				log.Println(utils.ELECTIONERROR, errors.New("Can't cast vote"))
 			}
 
 			mu.Lock()
@@ -150,12 +154,10 @@ func keepElecting(ctx *utils.Context) {
 }
 
 func waitForFinalSort(ctx *utils.Context, maxChunk int) {
-	for !ctx.FinalSort() {
-		time.Sleep(time.Second)
-	}
+	ctx.Wg().Wait()
 	err := utils.SortStoredChunks(maxChunk)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(utils.MASTERERROR, err)
 	}
 	utils.CleanTemporaryFiles()
 	utils.Broadcast(ctx, "END\n")
@@ -170,15 +172,15 @@ func Master(listFilename string, myIP string) {
 	numChunks := int(math.Ceil(float64(lineNumber) / float64(chunkSize)))
 	ctx := utils.NewContext(map[string]bool{myIP: true}, myIP, myIP, myIP, chunksChannel)
 
-	go generateChunks(listFilename, chunksChannel, chunkSize)
+	go generateChunks(ctx, listFilename, chunksChannel, chunkSize)
 
 	listener, err := net.Listen("tcp", utils.HandlerPort)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(utils.MASTERERROR, err)
 	}
 	defer listener.Close()
 
-	go tcp.Leader(ctx)
+	go leader.Leader(ctx)
 	go keepElecting(ctx)
 	go waitForFinalSort(ctx, numChunks)
 

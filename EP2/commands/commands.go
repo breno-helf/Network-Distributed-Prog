@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"../eventlog"
+	"../leader"
 	"../utils"
 )
 
@@ -54,8 +55,11 @@ func LEADER(conn net.Conn, ctx *utils.Context, newLeader string) error {
 		return errors.New("Only master node can change the leader")
 	}
 
-	ctx.ChangeLeader(newLeader)
+	ctx.SetLeader(newLeader)
 	eventlog.EventLeaderElected(newLeader)
+	if newLeader == ctx.MyIP() {
+		go leader.Leader(ctx)
+	}
 
 	return nil
 }
@@ -92,7 +96,6 @@ func WORK(conn net.Conn, ctx *utils.Context, remoteIP string) error {
 
 	chunkToSort, ok := <-ctx.Ch()
 	if !ok {
-		ctx.SetFinalSort(true)
 		// There is no chunk to sort
 		return nil
 	}
@@ -101,14 +104,14 @@ func WORK(conn net.Conn, ctx *utils.Context, remoteIP string) error {
 	go func(ch chan utils.Chunk, remoteIP string) {
 		workerConn, err := net.Dial("tcp", remoteIP+utils.HandlerPort)
 		if err != nil {
-			log.Println(err)
+			log.Printf(utils.WORKERROR, err)
 			return
 		}
 		defer workerConn.Close()
 
 		chunkStr, err := utils.CompressChunk(chunkToSort)
 		if err != nil {
-			log.Println(err)
+			log.Println(utils.WORKERROR, err)
 			return
 		}
 
@@ -117,13 +120,13 @@ func WORK(conn net.Conn, ctx *utils.Context, remoteIP string) error {
 		reader := bufio.NewReader(workerConn)
 		msg, err := reader.ReadString('\n')
 		if err != nil {
-			log.Println(err)
+			log.Println(utils.WORKERROR, err)
 			return
 		}
 		tokens := strings.Fields(msg)
 
 		if tokens[0] != "SORTED" {
-			log.Println(errors.New("Received message different than SORTED"))
+			log.Println(utils.WORKERROR, errors.New("Received message different than SORTED"))
 			return
 		}
 
@@ -135,6 +138,7 @@ func WORK(conn net.Conn, ctx *utils.Context, remoteIP string) error {
 	select {
 	case sortedChunk := <-ch:
 		utils.StoreChunk(sortedChunk)
+		ctx.Wg().Done()
 	case <-time.After(5 * time.Second):
 		ctx.Ch() <- chunkToSort
 		return fmt.Errorf("TIMEOUT: Machine %s timeouted during sorting of chunk %d", remoteIP, chunkToSort.ID)
@@ -164,7 +168,7 @@ func ELECTION(conn net.Conn, ctx *utils.Context) error {
 	}
 
 	eventlog.EventElectingLeader()
-
+	ctx.SetLeader("")
 	nodes := ctx.AllNodes()
 	vote := nodes[rand.Intn(len(nodes))]
 

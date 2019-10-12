@@ -22,12 +22,12 @@ func main() {
 
 	initialMachine, err := ioutil.ReadFile("address.conf")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(utils.MAINERROR, err)
 	}
 
 	myIP, err := utils.GetMyIP()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(utils.MAINERROR, err)
 	}
 
 	if len(os.Args) > 1 && string(initialMachine) == myIP {

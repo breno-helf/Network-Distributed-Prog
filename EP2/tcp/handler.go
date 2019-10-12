@@ -31,7 +31,7 @@ func handleCommand(conn net.Conn, msg string, ctx *utils.Context, ch chan bool) 
 		}
 		err := commands.LEADER(conn, ctx, tokens[1])
 		if err != nil {
-			log.Println(err)
+			return err
 		}
 	case "SORT":
 		if len(tokens) < 2 {
@@ -49,7 +49,7 @@ func handleCommand(conn net.Conn, msg string, ctx *utils.Context, ch chan bool) 
 		go func(conn net.Conn, tokens []string, ctx *utils.Context) {
 			err := commands.WORK(conn, ctx, tokens[1])
 			if err != nil {
-				log.Println(err)
+				log.Println(utils.HANDLEERROR, err)
 			}
 			<-ch
 		}(conn, tokens, ctx)
@@ -102,7 +102,7 @@ func HandleConnection(conn net.Conn, ctx *utils.Context) {
 
 		err = handleCommand(conn, msg, ctx, ch)
 		if err != nil {
-			log.Println(err)
+			log.Println(utils.HANDLEERROR, err)
 		}
 	}
 }

@@ -9,8 +9,8 @@ type Context struct {
 	masterNode string
 	myIP       string
 	ch         chan Chunk
-	finalSort  bool
 	mu         sync.RWMutex
+	wg         sync.WaitGroup
 }
 
 // NewContext create a new context
@@ -25,7 +25,6 @@ func NewContext(
 		leader:     leader,
 		masterNode: masterNode,
 		myIP:       myIP,
-		finalSort:  false,
 		ch:         ch,
 	}
 }
@@ -67,22 +66,8 @@ func (ctx *Context) Leader() string {
 	return ctx.leader
 }
 
-// FinalSort returns finalSort variable
-func (ctx *Context) FinalSort() bool {
-	ctx.mu.RLock()
-	defer ctx.mu.RUnlock()
-	return ctx.finalSort
-}
-
-// SetFinalSort sets the final sort variable
-func (ctx *Context) SetFinalSort(v bool) {
-	ctx.mu.Lock()
-	defer ctx.mu.Unlock()
-	ctx.finalSort = v
-}
-
-// ChangeLeader changes de current leader
-func (ctx *Context) ChangeLeader(leader string) {
+// SetLeader changes de current leader
+func (ctx *Context) SetLeader(leader string) {
 	ctx.mu.Lock()
 	defer ctx.mu.Unlock()
 	ctx.leader = leader
@@ -114,4 +99,9 @@ func (ctx *Context) MyIP() string {
 	ctx.mu.RLock()
 	defer ctx.mu.RUnlock()
 	return ctx.myIP
+}
+
+// Returns the wait group
+func (ctx *Context) Wg() *sync.WaitGroup {
+	return &ctx.wg
 }

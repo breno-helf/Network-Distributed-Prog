@@ -1,4 +1,4 @@
-package tcp
+package leader
 
 import (
 	"fmt"
@@ -27,7 +27,7 @@ func Leader(ctx *utils.Context) {
 	conn, err := net.Dial("tcp", ctx.MasterNode()+utils.HandlerPort)
 	defer conn.Close()
 	if err != nil {
-		log.Println(err)
+		log.Println(utils.LEADERERROR, err)
 	}
 	fmt.Println("LEADER started connection", conn.LocalAddr(), conn.RemoteAddr())
 
@@ -40,7 +40,7 @@ func Leader(ctx *utils.Context) {
 
 		err := askWorkForNode(conn, allNodes[idx], lastRequest)
 		if err != nil {
-			log.Println(err)
+			log.Println(utils.LEADERERROR, err)
 		}
 		idx++
 	}
@@ -51,7 +51,7 @@ func askWorkForNode(conn net.Conn, remoteIP string, lastRequest map[string]time.
 	if ok {
 		diff := time.Since(lastRequest[remoteIP])
 		if diff < 2*time.Second {
-			time.Sleep(time.Millisecond*5 - diff)
+			time.Sleep(time.Millisecond*10 - diff)
 		}
 	}
 	lastRequest[remoteIP] = time.Now()

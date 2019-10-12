@@ -45,7 +45,7 @@ func ClientConns(listener net.Listener) chan net.Conn {
 		for {
 			client, err := listener.Accept()
 			if client == nil {
-				log.Printf("Couldn't accept: %v\n", err)
+				log.Printf("Couldn't accept connection: %v\n", err)
 				continue
 			}
 			ch <- client
@@ -108,7 +108,7 @@ func Broadcast(ctx *Context, msg string) error {
 		go func(ch <-chan bool, msg string, remoteIP string) {
 			conn, err := net.Dial("tcp", remoteIP+HandlerPort)
 			if err != nil {
-				log.Println(err)
+				log.Println(BROADCASTERROR, err)
 			}
 			defer conn.Close()
 

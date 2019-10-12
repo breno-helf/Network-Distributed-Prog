@@ -30,7 +30,7 @@ func tryEnterNetwork(ctx *utils.Context) error {
 	tokens := strings.Fields(msg)
 
 	if tokens[0] == "LEADER" {
-		ctx.ChangeLeader(tokens[1])
+		ctx.SetLeader(tokens[1])
 	} else {
 		return errors.New("Expecting LEADER message")
 	}
@@ -60,7 +60,7 @@ func Slave(masterNode string, myIP string) {
 
 	listener, err := net.Listen("tcp", utils.HandlerPort)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(utils.SLAVEERROR, err)
 	}
 	defer listener.Close()
 
