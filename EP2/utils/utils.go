@@ -11,6 +11,7 @@ import (
 	"log"
 	"net"
 	"strings"
+	"sync"
 )
 
 // BufferSize is the default buffer size
@@ -47,7 +48,6 @@ func ClientConns(listener net.Listener) chan net.Conn {
 				log.Printf("Couldn't accept: %v\n", err)
 				continue
 			}
-			fmt.Printf("[One connection open]\n")
 			ch <- client
 		}
 	}()
@@ -90,4 +90,34 @@ func GetMyIP() (string, error) {
 		}
 	}
 	return "", errors.New("Can't find external IP")
+}
+
+// Broadcast sends a message to all nodes. Can only be called by Master
+func Broadcast(ctx *Context, msg string) error {
+	if !ctx.IsMasterNode() {
+		return errors.New("Only master can call Broadcast")
+	}
+
+	var wg sync.WaitGroup
+	nodes := ctx.AllNodes()
+	ch := make(chan bool, 5)
+
+	for _, node := range nodes {
+		ch <- true
+		wg.Add(1)
+		go func(ch <-chan bool, msg string, remoteIP string) {
+			conn, err := net.Dial("tcp", remoteIP+HandlerPort)
+			if err != nil {
+				log.Println(err)
+			}
+			defer conn.Close()
+
+			fmt.Fprint(conn, msg)
+			<-ch
+			wg.Done()
+		}(ch, msg, node)
+	}
+	wg.Wait()
+
+	return nil
 }

@@ -31,7 +31,6 @@ func tryEnterNetwork(ctx *utils.Context) error {
 
 	if tokens[0] == "LEADER" {
 		ctx.ChangeLeader(tokens[1])
-		fmt.Println("Leader is", tokens[1])
 	} else {
 		return errors.New("Expecting LEADER message")
 	}

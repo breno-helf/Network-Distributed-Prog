@@ -25,6 +25,7 @@ func Leader(ctx *utils.Context) {
 	lastRequest := make(map[string]time.Time)
 
 	conn, err := net.Dial("tcp", ctx.MasterNode()+utils.HandlerPort)
+	defer conn.Close()
 	if err != nil {
 		log.Println(err)
 	}

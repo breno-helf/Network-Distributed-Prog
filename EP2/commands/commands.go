@@ -2,10 +2,13 @@ package commands
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -22,17 +25,26 @@ func ENTER(conn net.Conn, ctx *utils.Context) error {
 
 	remoteIP := utils.GetRemoteIP(conn)
 	fmt.Println("Remote address entering network", remoteIP)
-	ctx.AddNode(remoteIP)
 
 	_, err := fmt.Fprintf(conn, "LEADER %s\n", ctx.Leader())
-
 	if err != nil {
 		return err
 	}
 
-	eventlog.EventNewNode(remoteIP)
+	nodesSlice := ctx.AllNodes()
+	nodesBytes, err := json.Marshal(nodesSlice)
+	if err != nil {
+		return err
+	}
 
-	return nil
+	_, err = fmt.Fprintf(conn, "NODES %s\n", string(nodesBytes))
+	if err != nil {
+		return err
+	}
+
+	err = utils.Broadcast(ctx, fmt.Sprintf("ENTERED %s\n", remoteIP))
+
+	return err
 }
 
 // LEADER command will change leader
@@ -67,11 +79,8 @@ func SORT(conn net.Conn, ctx *utils.Context, chunkStr string) error {
 	}
 
 	_, err = fmt.Fprintf(conn, "SORTED %s\n", chunkStr)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 // WORK will receive an IP that is requesting work.
@@ -95,6 +104,7 @@ func WORK(conn net.Conn, ctx *utils.Context, remoteIP string) error {
 			log.Println(err)
 			return
 		}
+		defer workerConn.Close()
 
 		chunkStr, err := utils.CompressChunk(chunkToSort)
 		if err != nil {
@@ -105,12 +115,11 @@ func WORK(conn net.Conn, ctx *utils.Context, remoteIP string) error {
 		fmt.Fprintf(workerConn, "SORT %s\n", chunkStr)
 
 		reader := bufio.NewReader(workerConn)
-		buffer, err := reader.ReadBytes('\n')
+		msg, err := reader.ReadString('\n')
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		msg := string(buffer)
 		tokens := strings.Fields(msg)
 
 		if tokens[0] != "SORTED" {
@@ -131,5 +140,67 @@ func WORK(conn net.Conn, ctx *utils.Context, remoteIP string) error {
 		return fmt.Errorf("TIMEOUT: Machine %s timeouted during sorting of chunk %d", remoteIP, chunkToSort.ID)
 	}
 
+	return nil
+}
+
+// ENTERED acknowledges the entrance of a new node
+func ENTERED(conn net.Conn, ctx *utils.Context, newNode string) error {
+	remoteIP := utils.GetRemoteIP(conn)
+	if remoteIP != ctx.MasterNode() {
+		return errors.New("Only master can communicate the entrance of a new node")
+	}
+
+	ctx.AddNode(newNode)
+	eventlog.EventNewNode(newNode)
+
+	return nil
+}
+
+// ELECTION is the calling of an election
+func ELECTION(conn net.Conn, ctx *utils.Context) error {
+	remoteIP := utils.GetRemoteIP(conn)
+	if remoteIP != ctx.MasterNode() {
+		return errors.New("Only master can call election")
+	}
+
+	eventlog.EventElectingLeader()
+
+	nodes := ctx.AllNodes()
+	vote := nodes[rand.Intn(len(nodes))]
+
+	_, err := fmt.Fprintf(conn, "VOTE %s\n", vote)
+
+	return err
+}
+
+// NODES inform all the nodes at once
+func NODES(conn net.Conn, ctx *utils.Context, nodesStr string) error {
+	remoteIP := utils.GetRemoteIP(conn)
+	if remoteIP != ctx.MasterNode() {
+		return errors.New("Only master can update nodes")
+	}
+
+	nodes := []string{}
+	err := json.Unmarshal([]byte(nodesStr), &nodes)
+	if err != nil {
+		return err
+	}
+
+	for _, node := range nodes {
+		ctx.AddNode(node)
+	}
+
+	return nil
+}
+
+// END finishes the sorting
+func END(conn net.Conn, ctx *utils.Context) error {
+	remoteIP := utils.GetRemoteIP(conn)
+	if remoteIP != ctx.MasterNode() {
+		return errors.New("Only master can end sorting")
+	}
+
+	eventlog.EventFinishSorting(ctx.MasterNode())
+	os.Exit(0)
 	return nil
 }

@@ -12,6 +12,8 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"../tcp"
@@ -90,7 +92,54 @@ func defineChunkSize(lineNumber int) int {
 }
 
 func election(ctx *utils.Context) {
+	var wg sync.WaitGroup
+	nodes := ctx.AllNodes()
+	ch := make(chan bool, 5)
+	votes := make(map[string]int)
+	var mu sync.Mutex
 
+	for _, node := range nodes {
+		ch <- true
+		wg.Add(1)
+		go func(ch <-chan bool, remoteIP string) {
+			conn, err := net.Dial("tcp", remoteIP+utils.HandlerPort)
+			if err != nil {
+				log.Println(err)
+			}
+			defer conn.Close()
+
+			fmt.Fprint(conn, "ELECTION")
+
+			reader := bufio.NewReader(conn)
+			msg, err := reader.ReadString('\n')
+			if err != nil {
+				log.Println(err)
+			}
+
+			tokens := strings.Fields(msg)
+			if len(tokens) < 2 {
+				log.Println("Can't cast vote")
+			}
+
+			mu.Lock()
+			votes[tokens[1]]++
+			mu.Unlock()
+
+			<-ch
+			wg.Done()
+		}(ch, node)
+	}
+	wg.Wait()
+
+	president, maxVotes := ctx.MasterNode(), -1
+	for k, v := range votes {
+		if v > maxVotes {
+			president = k
+			maxVotes = v
+		}
+	}
+
+	utils.Broadcast(ctx, fmt.Sprintf("LEADER %s\n", president))
 }
 
 func keepElecting(ctx *utils.Context) {
@@ -109,7 +158,7 @@ func waitForFinalSort(ctx *utils.Context, maxChunk int) {
 		log.Fatal(err)
 	}
 	utils.CleanTemporaryFiles()
-	os.Exit(0)
+	utils.Broadcast(ctx, "END\n")
 }
 
 // Master executes the behaviour of the master node
@@ -138,7 +187,6 @@ func Master(listFilename string, myIP string) {
 	connCh := utils.ClientConns(listener)
 
 	for conn := range connCh {
-		fmt.Println("MASTER Started connection", conn.LocalAddr(), conn.RemoteAddr())
 		go tcp.HandleConnection(conn, ctx)
 	}
 }

@@ -29,14 +29,10 @@ func handleCommand(conn net.Conn, msg string, ctx *utils.Context, ch chan bool) 
 		if len(tokens) < 2 {
 			return errors.New("LEADER command requires an argument")
 		}
-		ch <- true
-		go func(conn net.Conn, tokens []string, ctx *utils.Context) {
-			err := commands.LEADER(conn, ctx, tokens[1])
-			if err != nil {
-				log.Println(err)
-			}
-			<-ch
-		}(conn, tokens, ctx)
+		err := commands.LEADER(conn, ctx, tokens[1])
+		if err != nil {
+			log.Println(err)
+		}
 	case "SORT":
 		if len(tokens) < 2 {
 			return errors.New("SORT command requires an argument")
@@ -57,7 +53,34 @@ func handleCommand(conn net.Conn, msg string, ctx *utils.Context, ch chan bool) 
 			}
 			<-ch
 		}(conn, tokens, ctx)
-	// case "DIED":
+	case "ENTERED":
+		if len(tokens) < 2 {
+			return errors.New("ENTERED command requires an argument")
+		}
+		err := commands.ENTERED(conn, ctx, tokens[1])
+		if err != nil {
+			return err
+		}
+	case "ELECTION":
+		err := commands.ELECTION(conn, ctx)
+		if err != nil {
+			return err
+		}
+	case "END":
+		err := commands.END(conn, ctx)
+		if err != nil {
+			return err
+		}
+	case "NODES":
+		if len(tokens) < 2 {
+			return errors.New("NODES command requires an argument")
+		}
+		err := commands.NODES(conn, ctx, tokens[1])
+		if err != nil {
+			return err
+		}
+
+		// case "DIED":
 	default:
 		return fmt.Errorf("Can't handle message '%s'", msg)
 	}
