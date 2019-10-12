@@ -12,10 +12,10 @@ import (
 	"../utils"
 )
 
-//HEARTBTIME HearBeat timeout 
-const HEARTBTIME = 5000
+//HEARTBTIME defines HeartBeat() repeat time 
+const HEARTBTIME = 5 * time.Second
 //PINGTIME PING timeout 
-const PINGTIME = 5000
+const PINGTIME = 5 * time.Second
 
 // ENTER command will allow someone to enter in the network
 func ENTER(conn net.Conn, ctx *utils.Context) error {
@@ -93,35 +93,33 @@ func WORK(conn net.Conn, ctx *utils.Context, remoteIP string) error {
 // DIED reports that a node died
 func DIED(IP string, ctx *utils.Context) (bool){ //Returns true if the dead node was the leader
 	eventlog.EventDeadNode(IP)
-	ctx.DeleteNode(IP)
-	return ctx.CompareIP(IP) 
+	//ctx.RemoveNode(IP)
+	return (ctx.Leader() == IP) 
 }
 
 // PING returns if nodes are connected
 func PING(connection net.Conn, masterslave bool) (bool){ //True = master | False = slave
 	if (masterslave) {
-        timer := time.Now().UnixNano()/1000000
+        timer := time.Now()
 		for {
-            connection.Write([]byte("PING"))
-            timerAux := time.Now().UnixNano()/1000000
+            fmt.Fprintf(connection, "PING")
 			buffer := make([]byte, 1024)
             rcv,_ := connection.Read(buffer)
             if reflect.DeepEqual(buffer[:rcv], []byte("PONG")) {
                 break
-            } else if timerAux - timer > 5000 {
+            } else if time.Since(timer) > PINGTIME {
                 return false
             }
 		}
 	} else {
-        timer := time.Now().UnixNano()/1000000
+        timer := time.Now()
 		for {
-            timerAux := time.Now().UnixNano()/1000000
             buffer := make([]byte, 1024)
             rcv, _ := connection.Read(buffer)
             if reflect.DeepEqual(buffer[:rcv], []byte("PING")) {
                 connection.Write([]byte("PONG"))
                 break
-            } else if timerAux - timer > 1000 {
+            } else if time.Since(timer) > PINGTIME {
                 return false
             }
 		}
@@ -132,10 +130,9 @@ func PING(connection net.Conn, masterslave bool) (bool){ //True = master | False
 //HeartBeat periodically calls PING and return false if conexion fails
 func HeartBeat(connection net.Conn, masterslave bool) (bool){
     for {
-        timer := time.Now().UnixNano()/1000000
+        timer := time.Now()
         for {
-            timerAux := time.Now().UnixNano()/1000000
-            if timerAux-timer >= HEARTBTIME {
+            if time.Since(timer) >= HEARTBTIME {
                 if PING(connection, masterslave) {
                     break;
                 } 

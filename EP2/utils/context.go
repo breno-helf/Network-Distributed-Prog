@@ -1,7 +1,6 @@
 package utils
 
 import "sync"
-import "reflect"
 
 // Context is the current scenario the node is seeing the network in
 type Context struct {
@@ -69,29 +68,4 @@ func (ctx *Context) IsLeader() bool {
 	ctx.mu.RLock()
 	defer ctx.mu.RUnlock()
 	return ctx.leader == ctx.myIP
-}
-
-//DeleteNode Delets a node from the list
-func (ctx *Context) DeleteNode(node string) {
-	ctx.mu.RLock()
-	defer ctx.mu.RUnlock()
-	position := -1
-	for i :=0; i < len(ctx.nodes); i++ {
-		if reflect.DeepEqual(ctx.nodes[i], node){
-			position = i
-			break
-		}
-	}
-
-	ctx.mu.Lock()
-	defer ctx.mu.Unlock()
-	ctx.nodes = RemoveElement(ctx.nodes, position)
-
-}
-
-// CompareIP return if it's the same IP as the leader
-func (ctx *Context) CompareIP(IP string) bool {
-	ctx.mu.RLock()
-	defer ctx.mu.RUnlock()
-	return ctx.leader == IP
 }
