@@ -26,10 +26,11 @@ func Leader(ctx *utils.Context) {
 	})
 
 	conn, err := net.Dial("tcp", ctx.MasterNode()+utils.HandlerPort)
-	defer conn.Close()
 	if err != nil {
 		log.Printf(utils.LEADERERROR, err)
+		return
 	}
+	defer conn.Close()
 	fmt.Println("LEADER started connection", conn.LocalAddr(), conn.RemoteAddr())
 
 	go checkWorkDone(conn, ctx)

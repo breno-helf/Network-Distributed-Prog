@@ -117,6 +117,8 @@ func Broadcast(ctx *Context, msg string) error {
 			conn, err := net.Dial("tcp", remoteIP+HandlerPort)
 			if err != nil {
 				log.Printf(BROADCASTERROR, err)
+				<-ch
+				return
 			}
 			defer conn.Close()
 
@@ -174,7 +176,7 @@ func Heartbeat(ctx *Context, remoteIP string) {
 		if time.Since(timer) >= HeartBeatTime {
 			err := checkNode(conn, remoteIP)
 			if err != nil {
-				log.Println(HEARTBEATERROR, err)
+				log.Printf(HEARTBEATERROR, err)
 				Broadcast(ctx, fmt.Sprintf("DEAD %s\n", remoteIP))
 			}
 			timer = time.Now()

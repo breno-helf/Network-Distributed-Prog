@@ -45,6 +45,8 @@ func ENTER(conn net.Conn, ctx *utils.Context) error {
 
 	err = utils.Broadcast(ctx, fmt.Sprintf("ENTERED %s\n", remoteIP))
 
+	go utils.Heartbeat(ctx, remoteIP)
+
 	return err
 }
 
