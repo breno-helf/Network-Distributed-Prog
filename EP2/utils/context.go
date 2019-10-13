@@ -101,7 +101,7 @@ func (ctx *Context) MyIP() string {
 	return ctx.myIP
 }
 
-// Returns the wait group
+// Wg Returns the wait group
 func (ctx *Context) Wg() *sync.WaitGroup {
 	return &ctx.wg
 }

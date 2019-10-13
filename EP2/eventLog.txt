@@ -1,1 +1,0 @@
-We have finished sorting, we can find the array in [192.168.15.34]
