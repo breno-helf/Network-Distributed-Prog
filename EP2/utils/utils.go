@@ -183,3 +183,29 @@ func Heartbeat(ctx *Context, remoteIP string) {
 		}
 	}
 }
+
+// TryEnterNetwork tries to enter the network
+func TryEnterNetwork(ctx *Context) error {
+	conn, err := net.Dial("tcp", ctx.MasterNode()+HandlerPort)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	_, err = fmt.Fprintf(conn, "ENTER\n")
+	if err != nil {
+		return err
+	}
+
+	reader := bufio.NewReader(conn)
+	msg, err := reader.ReadString('\n')
+	tokens := strings.Fields(msg)
+
+	if tokens[0] == "LEADER" {
+		ctx.SetLeader(tokens[1])
+	} else {
+		return errors.New("Expecting LEADER message")
+	}
+
+	return nil
+}

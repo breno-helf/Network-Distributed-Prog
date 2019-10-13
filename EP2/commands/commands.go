@@ -232,12 +232,26 @@ func DEAD(conn net.Conn, ctx *utils.Context, deadNode string) error {
 
 	eventlog.EventDeadNode(deadNode)
 	ctx.RemoveNode(deadNode)
-	if deadNode == ctx.Leader() {
+	if deadNode == ctx.Leader() && ctx.IsMasterNode() {
 		deadLeaderCh := ctx.DeadLeaderCh()
 		deadLeaderCh <- true
 	}
 
+	if deadNode == ctx.MyIP() {
+		go enterNetwork(ctx)
+	}
+
 	return nil
+}
+
+// EnterNetwork enter the network
+func enterNetwork(ctx *utils.Context) {
+	err := utils.TryEnterNetwork(ctx)
+	for err != nil {
+		err = utils.TryEnterNetwork(ctx)
+	}
+	ctx.AddNode(ctx.MyIP())
+	eventlog.EventNewNode(ctx.MyIP())
 }
 
 // PING returns PONG

@@ -5,41 +5,22 @@ package slave
  * Matheus Barcellos de Castro Cunha - 11208238
 **/
 import (
-	"bufio"
-	"errors"
 	"fmt"
 	"log"
 	"net"
-	"strings"
 
 	"../eventlog"
 	"../tcp"
 	"../utils"
 )
 
-func tryEnterNetwork(ctx *utils.Context) error {
-	conn, err := net.Dial("tcp", ctx.MasterNode()+utils.HandlerPort)
-	if err != nil {
-		return err
+func enterNetwork(ctx *utils.Context) {
+	err := utils.TryEnterNetwork(ctx)
+	for err != nil {
+		err = utils.TryEnterNetwork(ctx)
 	}
-	defer conn.Close()
-
-	_, err = fmt.Fprintf(conn, "ENTER\n")
-	if err != nil {
-		return err
-	}
-
-	reader := bufio.NewReader(conn)
-	msg, err := reader.ReadString('\n')
-	tokens := strings.Fields(msg)
-
-	if tokens[0] == "LEADER" {
-		ctx.SetLeader(tokens[1])
-	} else {
-		return errors.New("Expecting LEADER message")
-	}
-
-	return nil
+	ctx.AddNode(ctx.MyIP())
+	eventlog.EventNewNode(ctx.MyIP())
 }
 
 // Slave defines the behaviour of a slave node
@@ -55,14 +36,7 @@ func Slave(masterNode string, myIP string) {
 	fmt.Println("Started slave")
 
 	// Keep trying to connect
-	go func(ctx *utils.Context) {
-		err := tryEnterNetwork(ctx)
-		for err != nil {
-			err = tryEnterNetwork(ctx)
-		}
-		ctx.AddNode(ctx.MyIP())
-		eventlog.EventNewNode(ctx.MyIP())
-	}(ctx)
+	go enterNetwork(ctx)
 
 	listener, err := net.Listen("tcp", utils.HandlerPort)
 	if err != nil {
