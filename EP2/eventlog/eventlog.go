@@ -40,7 +40,7 @@ func EventNewNode(node string) {
 		msg := fmt.Sprintf("New node entered the system [%s]\n", node)
 		_, err := logfd.WriteString(msg)
 		if err != nil {
-			log.Println(utils.LOGERROR, err)
+			log.Printf(utils.LOGERROR, err)
 		}
 	}
 }
@@ -51,7 +51,7 @@ func EventDeadNode(node string) {
 		msg := fmt.Sprintf("A node died [%s]\n", node)
 		_, err := logfd.WriteString(msg)
 		if err != nil {
-			log.Println(utils.LOGERROR, err)
+			log.Printf(utils.LOGERROR, err)
 		}
 	}
 }
@@ -61,7 +61,7 @@ func EventElectingLeader() {
 	if logmode {
 		_, err := logfd.WriteString(("Electing new leader"))
 		if err != nil {
-			log.Println(utils.LOGERROR, err)
+			log.Printf(utils.LOGERROR, err)
 		}
 	}
 }
@@ -72,7 +72,7 @@ func EventLeaderElected(node string) {
 		msg := fmt.Sprintf("We have elected a new leader [%s]\n", node)
 		_, err := logfd.WriteString(msg)
 		if err != nil {
-			log.Println(utils.LOGERROR, err)
+			log.Printf(utils.LOGERROR, err)
 		}
 	}
 }
@@ -83,7 +83,7 @@ func EventFinishSorting(masterNode string) {
 		msg := fmt.Sprintf("We have finished sorting, we can find the array in [%s]\n", masterNode)
 		_, err := logfd.WriteString(msg)
 		if err != nil {
-			log.Println(utils.LOGERROR, err)
+			log.Printf(utils.LOGERROR, err)
 		}
 	}
 }

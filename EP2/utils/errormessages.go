@@ -1,12 +1,12 @@
 package utils
 
 // Error messages
-const WORKERROR = "WORK command failed: %v"
-const LOGERROR = "eventlog failed: %v"
-const LEADERERROR = "Leader failed: %v"
-const MAINERROR = "Main error: %v"
-const MASTERERROR = "Master error: %v"
-const ELECTIONERROR = "Election error: %v"
-const SLAVEERROR = "Slave error: %v"
-const HANDLEERROR = "Failed to handle command: %v"
-const BROADCASTERROR = "Broadcast error: %v"
+const WORKERROR = "WORK command failed: %v\n"
+const LOGERROR = "eventlog failed: %v\n"
+const LEADERERROR = "Leader failed: %v\n"
+const MAINERROR = "Main error: %v\n"
+const MASTERERROR = "Master error: %v\n"
+const ELECTIONERROR = "Election error: %v\n"
+const SLAVEERROR = "Slave error: %v\n"
+const HANDLEERROR = "Failed to handle command: %v\n"
+const BROADCASTERROR = "Broadcast error: %v\n"

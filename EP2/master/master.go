@@ -6,6 +6,7 @@ package master
 **/
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -107,7 +108,7 @@ func election(ctx *utils.Context) {
 		go func(ch <-chan bool, remoteIP string) {
 			conn, err := net.Dial("tcp", remoteIP+utils.HandlerPort)
 			if err != nil {
-				log.Println(utils.ELECTIONERROR, err)
+				log.Printf(utils.ELECTIONERROR, err)
 			}
 			defer conn.Close()
 
@@ -116,12 +117,12 @@ func election(ctx *utils.Context) {
 			reader := bufio.NewReader(conn)
 			msg, err := reader.ReadString('\n')
 			if err != nil {
-				log.Println(utils.ELECTIONERROR, err)
+				log.Printf(utils.ELECTIONERROR, err)
 			}
 
 			tokens := strings.Fields(msg)
 			if len(tokens) < 2 {
-				log.Println(utils.ELECTIONERROR, errors.New("Can't cast vote"))
+				log.Printf(utils.ELECTIONERROR, errors.New("Can't cast vote"))
 			}
 
 			mu.Lock()
@@ -140,6 +141,23 @@ func election(ctx *utils.Context) {
 			president = k
 			maxVotes = v
 		}
+	}
+
+	// contact leader to inform the nodes
+	conn, err := net.Dial("tcp", president+utils.HandlerPort)
+	if err != nil {
+		log.Printf(utils.ELECTIONERROR, errors.New("Couldn't send nodes to Leader"))
+	}
+	defer conn.Close()
+	nodesSlice := ctx.AllNodes()
+	nodesBytes, err := json.Marshal(nodesSlice)
+	if err != nil {
+		log.Printf(utils.ELECTIONERROR, err)
+	}
+
+	_, err = fmt.Fprintf(conn, "NODES %s\n", string(nodesBytes))
+	if err != nil {
+		log.Printf(utils.ELECTIONERROR, err)
 	}
 
 	utils.Broadcast(ctx, fmt.Sprintf("LEADER %s\n", president))

@@ -27,7 +27,7 @@ func Leader(ctx *utils.Context) {
 	conn, err := net.Dial("tcp", ctx.MasterNode()+utils.HandlerPort)
 	defer conn.Close()
 	if err != nil {
-		log.Println(utils.LEADERERROR, err)
+		log.Printf(utils.LEADERERROR, err)
 	}
 	fmt.Println("LEADER started connection", conn.LocalAddr(), conn.RemoteAddr())
 
@@ -40,7 +40,7 @@ func Leader(ctx *utils.Context) {
 
 		err := askWorkForNode(conn, allNodes[idx], lastRequest)
 		if err != nil {
-			log.Println(utils.LEADERERROR, err)
+			log.Printf(utils.LEADERERROR, err)
 		}
 		idx++
 	}

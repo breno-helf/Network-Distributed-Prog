@@ -111,7 +111,7 @@ func WORK(conn net.Conn, ctx *utils.Context, remoteIP string) error {
 
 		chunkStr, err := utils.CompressChunk(chunkToSort)
 		if err != nil {
-			log.Println(utils.WORKERROR, err)
+			log.Printf(utils.WORKERROR, err)
 			return
 		}
 
@@ -120,13 +120,13 @@ func WORK(conn net.Conn, ctx *utils.Context, remoteIP string) error {
 		reader := bufio.NewReader(workerConn)
 		msg, err := reader.ReadString('\n')
 		if err != nil {
-			log.Println(utils.WORKERROR, err)
+			log.Printf(utils.WORKERROR, err)
 			return
 		}
 		tokens := strings.Fields(msg)
 
 		if tokens[0] != "SORTED" {
-			log.Println(utils.WORKERROR, errors.New("Received message different than SORTED"))
+			log.Printf(utils.WORKERROR, errors.New("Received message different than SORTED"))
 			return
 		}
 

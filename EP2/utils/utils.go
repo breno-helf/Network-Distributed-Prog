@@ -108,7 +108,7 @@ func Broadcast(ctx *Context, msg string) error {
 		go func(ch <-chan bool, msg string, remoteIP string) {
 			conn, err := net.Dial("tcp", remoteIP+HandlerPort)
 			if err != nil {
-				log.Println(BROADCASTERROR, err)
+				log.Printf(BROADCASTERROR, err)
 			}
 			defer conn.Close()
 
