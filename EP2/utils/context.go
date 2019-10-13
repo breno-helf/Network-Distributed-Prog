@@ -44,7 +44,7 @@ func (ctx *Context) AddNode(node string) {
 	ctx.mu.Lock()
 	defer ctx.mu.Unlock()
 	ctx.nodes[node] = true
-	ctx.workLoad[node] = make(chan bool, 3)
+	ctx.workLoad[node] = make(chan bool, 4)
 }
 
 // RemoveNode remove a node from nodes

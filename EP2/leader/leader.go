@@ -31,7 +31,6 @@ func Leader(ctx *utils.Context) {
 		return
 	}
 	defer conn.Close()
-	fmt.Println("LEADER started connection", conn.LocalAddr(), conn.RemoteAddr())
 
 	go checkWorkDone(conn, ctx)
 
