@@ -5,6 +5,7 @@ package utils
  * Matheus Barcellos de Castro Cunha - 11208238
 **/
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"time"
 )
 
 // BufferSize is the default buffer size
@@ -19,6 +21,12 @@ const BufferSize = 256
 
 // HandlerPort is the default port for handlers
 const HandlerPort = ":8042"
+
+// HeartbeatTime defines Heartbeat() repeat time
+const HeartBeatTime = 20 * time.Second
+
+// Timeout defines the timeout
+const Timeout = 15 * time.Second
 
 // GetRemoteIP extracts just the remoteIP from a connection
 func GetRemoteIP(conn net.Conn) string {
@@ -120,4 +128,56 @@ func Broadcast(ctx *Context, msg string) error {
 	wg.Wait()
 
 	return nil
+}
+
+// CheckNode pings a node
+func checkNode(conn net.Conn, remoteIP string) error {
+	ch := make(chan error)
+	go func(conn net.Conn) {
+		_, err := fmt.Fprintf(conn, "PING\n")
+
+		reader := bufio.NewReader(conn)
+		msg, err := reader.ReadString('\n')
+		if err != nil {
+			ch <- err
+			return
+		}
+		tokens := strings.Fields(msg)
+
+		if tokens[0] != "PONG" {
+			ch <- errors.New("Received message different than PONG, node is crazy (I mean, dead)")
+			return
+		}
+
+		ch <- nil
+	}(conn)
+
+	select {
+	case err := <-ch:
+		return err
+	case <-time.After(Timeout):
+		return fmt.Errorf("Node %s timeouted during heartbeat", remoteIP)
+	}
+}
+
+// Heartbeat Keeps HeartBeating other node
+func Heartbeat(ctx *Context, remoteIP string) {
+	conn, err := net.Dial("tcp", remoteIP+HandlerPort)
+	if err != nil {
+		log.Printf(HEARTBEATERROR, err)
+		return
+	}
+	defer conn.Close()
+
+	timer := time.Now()
+	for {
+		if time.Since(timer) >= HeartBeatTime {
+			err := checkNode(conn, remoteIP)
+			if err != nil {
+				log.Println(HEARTBEATERROR, err)
+				Broadcast(ctx, fmt.Sprintf("DEAD %s\n", remoteIP))
+			}
+			timer = time.Now()
+		}
+	}
 }

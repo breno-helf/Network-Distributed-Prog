@@ -7,7 +7,9 @@ package main
 import (
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"os"
+	"time"
 
 	"./eventlog"
 	"./master"
@@ -20,6 +22,7 @@ func main() {
 	masterNode := false
 	var listFilename string
 
+	rand.Seed(time.Now().UTC().UnixNano())
 	initialMachine, err := ioutil.ReadFile("address.conf")
 	if err != nil {
 		log.Fatal(utils.MAINERROR, err)

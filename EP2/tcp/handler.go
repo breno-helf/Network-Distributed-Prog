@@ -83,7 +83,19 @@ func handleCommand(conn net.Conn, msg string, ctx *utils.Context, ch chan bool) 
 		if err != nil {
 			return err
 		}
-		// case "DIED":
+	case "DEAD":
+		if len(tokens) < 2 {
+			return errors.New("DEAD command requires an argument")
+		}
+		err := commands.DEAD(conn, ctx, tokens[1])
+		if err != nil {
+			return err
+		}
+	case "PING":
+		err := commands.PING(conn, ctx)
+		if err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("Can't handle message '%s' on port %s", msg, utils.HandlerPort)
 	}

@@ -148,16 +148,10 @@ func WORK(conn net.Conn, ctx *utils.Context, workerIP string) error {
 	case sortedChunk := <-ch:
 		utils.StoreChunk(sortedChunk)
 		ctx.Wg().Done()
-		_, err := fmt.Fprintf(conn, "DONE %s\n", workerIP)
-		if err != nil {
-			log.Printf(utils.WORKERROR, err)
-		}
-	case <-time.After(30 * time.Second):
+		fmt.Fprintf(conn, "DONE %s\n", workerIP)
+	case <-time.After(utils.Timeout):
 		ctx.Ch() <- chunkToSort
-		_, err := fmt.Fprintf(conn, "DONE %s\n", workerIP)
-		if err != nil {
-			log.Printf(utils.WORKERROR, err)
-		}
+		fmt.Fprintf(conn, "DONE %s\n", workerIP)
 		return fmt.Errorf("TIMEOUT: Machine %s timeouted during sorting of chunk %d", workerIP, chunkToSort.ID)
 	}
 
@@ -189,7 +183,7 @@ func ELECTION(conn net.Conn, ctx *utils.Context) error {
 	nodes := ctx.AllNodes()
 	vote := nodes[rand.Intn(len(nodes))]
 
-	log.Println(fmt.Sprintf("--> Voting for %s!", vote))
+	log.Println(fmt.Sprintf("--> Voting for %s! (%v)", vote, nodes))
 	_, err := fmt.Fprintf(conn, "VOTE %s\n", vote)
 
 	return err
@@ -225,4 +219,27 @@ func END(conn net.Conn, ctx *utils.Context) error {
 	eventlog.EventFinishSorting(ctx.MasterNode())
 	os.Exit(0)
 	return nil
+}
+
+// DEAD recognizes that a node is dead
+func DEAD(conn net.Conn, ctx *utils.Context, deadNode string) error {
+	remoteIP := utils.GetRemoteIP(conn)
+	if remoteIP != ctx.MasterNode() {
+		return errors.New("Only master can inform a dead node")
+	}
+
+	eventlog.EventDeadNode(deadNode)
+	ctx.RemoveNode(deadNode)
+	if deadNode == ctx.Leader() {
+		deadLeaderCh := ctx.DeadLeaderCh()
+		deadLeaderCh <- true
+	}
+
+	return nil
+}
+
+// PING returns PONG
+func PING(conn net.Conn, ctx *utils.Context) error {
+	_, err := fmt.Fprintf(conn, "PONG\n")
+	return err
 }

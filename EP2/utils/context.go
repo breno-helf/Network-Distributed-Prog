@@ -9,6 +9,7 @@ type Context struct {
 	masterNode string
 	myIP       string
 	ch         chan Chunk
+	deadLeader chan bool
 	workLoad   map[string]chan bool
 	mu         sync.RWMutex
 	wg         sync.WaitGroup
@@ -32,7 +33,7 @@ func NewContext(
 	for k := range ctx.nodes {
 		ctx.workLoad[k] = make(chan bool, 3)
 	}
-
+	ctx.deadLeader = make(chan bool, 1)
 	return ctx
 }
 
@@ -69,6 +70,11 @@ func (ctx *Context) WorkLoad(node string) (chan bool, bool) {
 	defer ctx.mu.RUnlock()
 	ch, ok := ctx.workLoad[node]
 	return ch, ok
+}
+
+// DeadLeaderCh return the dead leader channel
+func (ctx *Context) DeadLeaderCh() chan bool {
+	return ctx.deadLeader
 }
 
 // Ch return the chunk channel

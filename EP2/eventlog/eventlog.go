@@ -59,7 +59,7 @@ func EventDeadNode(node string) {
 // EventElectingLeader writes in the event logger that we are electing a new leader
 func EventElectingLeader() {
 	if logmode {
-		_, err := logfd.WriteString(("Electing new leader"))
+		_, err := logfd.WriteString(("Electing new leader\n"))
 		if err != nil {
 			log.Printf(utils.LOGERROR, err)
 		}
