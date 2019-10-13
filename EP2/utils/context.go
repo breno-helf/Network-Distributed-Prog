@@ -33,7 +33,7 @@ func NewContext(
 	}
 	ctx.workLoad = make(map[string]chan bool)
 	for k := range ctx.nodes {
-		ctx.workLoad[k] = make(chan bool, 1)
+		ctx.workLoad[k] = make(chan bool, 2)
 	}
 	ctx.deadLeader = make(chan bool, 1)
 	return ctx
