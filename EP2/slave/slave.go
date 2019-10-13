@@ -12,6 +12,7 @@ import (
 	"net"
 	"strings"
 
+	"../eventlog"
 	"../tcp"
 	"../utils"
 )
@@ -59,6 +60,8 @@ func Slave(masterNode string, myIP string) {
 		for err != nil {
 			err = tryEnterNetwork(ctx)
 		}
+		ctx.AddNode(ctx.MyIP())
+		eventlog.EventNewNode(ctx.MyIP())
 	}(ctx)
 
 	listener, err := net.Listen("tcp", utils.HandlerPort)

@@ -108,24 +108,33 @@ func election(ctx *utils.Context) {
 		ch <- true
 		wg.Add(1)
 		go func(ch <-chan bool, remoteIP string) {
-			log.Println("Connecting with ", remoteIP)
 			conn, err := net.Dial("tcp", remoteIP+utils.HandlerPort)
+			log.Println("==> Election connection ", conn.LocalAddr(), conn.RemoteAddr())
 			if err != nil {
 				log.Printf(utils.ELECTIONERROR, err)
+				return
 			}
 			defer conn.Close()
 
-			fmt.Fprint(conn, "ELECTION")
+			log.Println("==> Sent Election signal to ", remoteIP)
+			_, err = fmt.Fprint(conn, "ELECTION\n")
+			if err != nil {
+				log.Printf(utils.ELECTIONERROR, err)
+				return
+			}
 
 			reader := bufio.NewReader(conn)
 			msg, err := reader.ReadString('\n')
 			if err != nil {
 				log.Printf(utils.ELECTIONERROR, err)
+				return
 			}
 
+			log.Println("==> Received vote from", remoteIP, "vote is ", msg)
 			tokens := strings.Fields(msg)
 			if len(tokens) < 2 || tokens[0] != "VOTE" {
 				log.Printf(utils.ELECTIONERROR, errors.New("Can't cast vote"))
+				return
 			}
 
 			mu.Lock()
@@ -170,7 +179,7 @@ func keepElecting(ctx *utils.Context) {
 	log.Println("Waiting for an election")
 	for {
 		select {
-		case <-time.After(time.Minute):
+		case <-time.After(20 * time.Second):
 			election(ctx)
 		}
 	}

@@ -84,7 +84,6 @@ func SORT(conn net.Conn, ctx *utils.Context, chunkStr string) error {
 	}
 
 	_, err = fmt.Fprintf(conn, "SORTED %s\n", chunkStr)
-	log.Println(fmt.Sprintf("Sent chunk %d sorted!", chunk.ID))
 
 	return err
 }
@@ -149,7 +148,6 @@ func WORK(conn net.Conn, ctx *utils.Context, workerIP string) error {
 	case sortedChunk := <-ch:
 		utils.StoreChunk(sortedChunk)
 		ctx.Wg().Done()
-		log.Println(fmt.Sprintf("--> Chunk %d sorted by %s", sortedChunk.ID, workerIP))
 		_, err := fmt.Fprintf(conn, "DONE %s\n", workerIP)
 		if err != nil {
 			log.Printf(utils.WORKERROR, err)
