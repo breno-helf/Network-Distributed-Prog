@@ -176,6 +176,7 @@ func keepElecting(ctx *utils.Context) {
 	for {
 		select {
 		case <-time.After(3 * time.Minute):
+			election(ctx)
 		case <-ctx.DeadLeaderCh():
 			election(ctx)
 		}
