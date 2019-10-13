@@ -57,7 +57,6 @@ func LEADER(conn net.Conn, ctx *utils.Context, newLeader string) error {
 		return errors.New("Only master node can change the leader")
 	}
 
-	log.Println(fmt.Sprintf("--> Changed leader to %s", newLeader))
 	ctx.SetLeader(newLeader)
 	eventlog.EventLeaderElected(newLeader)
 	if newLeader == ctx.MyIP() {
@@ -151,6 +150,7 @@ func WORK(conn net.Conn, ctx *utils.Context, workerIP string) error {
 		utils.StoreChunk(sortedChunk)
 		ctx.Wg().Done()
 		fmt.Fprintf(conn, "DONE %s\n", workerIP)
+		log.Printf("Machine %s ordered chunk %d.", workerIP, sortedChunk.ID)
 	case <-time.After(utils.Timeout):
 		ctx.Ch() <- chunkToSort
 		fmt.Fprintf(conn, "DONE %s\n", workerIP)
@@ -185,7 +185,6 @@ func ELECTION(conn net.Conn, ctx *utils.Context) error {
 	nodes := ctx.AllNodes()
 	vote := nodes[rand.Intn(len(nodes))]
 
-	log.Println(fmt.Sprintf("--> Voting for %s! (%v)", vote, nodes))
 	_, err := fmt.Fprintf(conn, "VOTE %s\n", vote)
 
 	return err
@@ -218,6 +217,10 @@ func END(conn net.Conn, ctx *utils.Context) error {
 		return errors.New("Only master can end sorting")
 	}
 
+	if ctx.IsMasterNode() {
+		return nil // MasterNode kill itself
+	}
+
 	eventlog.EventFinishSorting(ctx.MasterNode())
 	os.Exit(0)
 	return nil
@@ -230,18 +233,23 @@ func DEAD(conn net.Conn, ctx *utils.Context, deadNode string) error {
 		return errors.New("Only master can inform a dead node")
 	}
 
+	var err error
 	eventlog.EventDeadNode(deadNode)
 	ctx.RemoveNode(deadNode)
 	if deadNode == ctx.Leader() && ctx.IsMasterNode() {
 		deadLeaderCh := ctx.DeadLeaderCh()
-		deadLeaderCh <- true
+		select {
+		case deadLeaderCh <- true:
+		default:
+			err = errors.New("DeadLeader Channel is full")
+		}
 	}
 
 	if deadNode == ctx.MyIP() {
 		go enterNetwork(ctx)
 	}
 
-	return nil
+	return err
 }
 
 // EnterNetwork enter the network

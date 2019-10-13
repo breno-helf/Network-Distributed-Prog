@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"../eventlog"
 	"../leader"
 	"../tcp"
 	"../utils"
@@ -59,8 +60,6 @@ func generateChunks(ctx *utils.Context, filename string, ch chan<- utils.Chunk, 
 		ch <- currentChunk
 		currentID++
 	}
-
-	close(ch)
 }
 
 func countLines(filename string) int {
@@ -105,8 +104,6 @@ func election(ctx *utils.Context) {
 	ch := make(chan bool, 5)
 	votes := make(map[string]int)
 	var mu sync.Mutex
-
-	log.Println("ELECTION CALL!!!!!! ", nodes)
 
 	for _, node := range nodes {
 		ch <- true
@@ -190,13 +187,18 @@ func keepElecting(ctx *utils.Context) {
 func waitForFinalSort(ctx *utils.Context, maxChunk int) {
 	ctx.Wg().Wait()
 	ctx.SetFinalSort(true)
-	utils.Broadcast(ctx, "LEADER NOLEADER\n")
+	utils.Broadcast(ctx, "LEADER FINALSORT\n")
+	close(ctx.Ch())
+	log.Println("We are in final sort, there is no leader")
 	err := utils.SortStoredChunks(maxChunk)
 	if err != nil {
 		log.Fatal(utils.MASTERERROR, err)
 	}
 	utils.CleanTemporaryFiles()
 	utils.Broadcast(ctx, "END\n")
+
+	eventlog.EventFinishSorting(ctx.MasterNode())
+	os.Exit(0)
 }
 
 // Master executes the behaviour of the master node
