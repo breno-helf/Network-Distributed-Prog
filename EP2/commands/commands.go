@@ -55,6 +55,7 @@ func LEADER(conn net.Conn, ctx *utils.Context, newLeader string) error {
 		return errors.New("Only master node can change the leader")
 	}
 
+	log.Println(fmt.Sprintf("--> Changed leader to %s", newLeader))
 	ctx.SetLeader(newLeader)
 	eventlog.EventLeaderElected(newLeader)
 	if newLeader == ctx.MyIP() {
@@ -139,6 +140,7 @@ func WORK(conn net.Conn, ctx *utils.Context, remoteIP string) error {
 	case sortedChunk := <-ch:
 		utils.StoreChunk(sortedChunk)
 		ctx.Wg().Done()
+		log.Println(fmt.Sprintf("--> Chunk %d sorted by %s", sortedChunk.ID, remoteIP))
 	case <-time.After(5 * time.Second):
 		ctx.Ch() <- chunkToSort
 		return fmt.Errorf("TIMEOUT: Machine %s timeouted during sorting of chunk %d", remoteIP, chunkToSort.ID)
