@@ -102,10 +102,13 @@ func election(ctx *utils.Context) {
 	votes := make(map[string]int)
 	var mu sync.Mutex
 
+	log.Println("ELECTION CALL!!!!!! ", nodes)
+
 	for _, node := range nodes {
 		ch <- true
 		wg.Add(1)
 		go func(ch <-chan bool, remoteIP string) {
+			log.Println("Connecting with ", remoteIP)
 			conn, err := net.Dial("tcp", remoteIP+utils.HandlerPort)
 			if err != nil {
 				log.Printf(utils.ELECTIONERROR, err)
@@ -121,7 +124,7 @@ func election(ctx *utils.Context) {
 			}
 
 			tokens := strings.Fields(msg)
-			if len(tokens) < 2 {
+			if len(tokens) < 2 || tokens[0] != "VOTE" {
 				log.Printf(utils.ELECTIONERROR, errors.New("Can't cast vote"))
 			}
 
@@ -164,9 +167,12 @@ func election(ctx *utils.Context) {
 }
 
 func keepElecting(ctx *utils.Context) {
+	log.Println("Waiting for an election")
 	for {
-		time.Sleep(time.Minute)
-		election(ctx)
+		select {
+		case <-time.After(time.Minute):
+			election(ctx)
+		}
 	}
 }
 

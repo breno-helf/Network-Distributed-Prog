@@ -23,7 +23,10 @@ func tryEnterNetwork(ctx *utils.Context) error {
 	}
 	defer conn.Close()
 
-	fmt.Fprintf(conn, "ENTER\n")
+	_, err = fmt.Fprintf(conn, "ENTER\n")
+	if err != nil {
+		return err
+	}
 
 	reader := bufio.NewReader(conn)
 	msg, err := reader.ReadString('\n')

@@ -37,10 +37,14 @@ func handleCommand(conn net.Conn, msg string, ctx *utils.Context, ch chan bool) 
 		if len(tokens) < 2 {
 			return errors.New("SORT command requires an argument")
 		}
-		err := commands.SORT(conn, ctx, tokens[1])
-		if err != nil {
-			return err
-		}
+		ch <- true
+		go func(conn net.Conn, tokens []string, ctx *utils.Context) {
+			err := commands.SORT(conn, ctx, tokens[1])
+			if err != nil {
+				log.Printf(utils.HANDLEERROR, err)
+			}
+			<-ch
+		}(conn, tokens, ctx)
 	case "WORK":
 		if len(tokens) < 2 {
 			return errors.New("WORK command requires an argument")

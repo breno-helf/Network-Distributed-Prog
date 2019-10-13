@@ -84,6 +84,7 @@ func SORT(conn net.Conn, ctx *utils.Context, chunkStr string) error {
 	}
 
 	_, err = fmt.Fprintf(conn, "SORTED %s\n", chunkStr)
+	log.Println(fmt.Sprintf("Sent chunk %d sorted!", chunk.ID))
 
 	return err
 }
@@ -121,8 +122,11 @@ func WORK(conn net.Conn, ctx *utils.Context, workerIP string) error {
 			return
 		}
 
-		fmt.Fprintf(workerConn, "SORT %s\n", chunkStr)
-
+		_, err = fmt.Fprintf(workerConn, "SORT %s\n", chunkStr)
+		if err != nil {
+			log.Printf(utils.WORKERROR, err)
+			return
+		}
 		reader := bufio.NewReader(workerConn)
 		msg, err := reader.ReadString('\n')
 		if err != nil {
@@ -146,10 +150,16 @@ func WORK(conn net.Conn, ctx *utils.Context, workerIP string) error {
 		utils.StoreChunk(sortedChunk)
 		ctx.Wg().Done()
 		log.Println(fmt.Sprintf("--> Chunk %d sorted by %s", sortedChunk.ID, workerIP))
-		fmt.Fprintf(conn, "DONE %s\n", workerIP)
-	case <-time.After(5 * time.Second):
+		_, err := fmt.Fprintf(conn, "DONE %s\n", workerIP)
+		if err != nil {
+			log.Printf(utils.WORKERROR, err)
+		}
+	case <-time.After(30 * time.Second):
 		ctx.Ch() <- chunkToSort
-		fmt.Fprintf(conn, "DONE %s\n", workerIP)
+		_, err := fmt.Fprintf(conn, "DONE %s\n", workerIP)
+		if err != nil {
+			log.Printf(utils.WORKERROR, err)
+		}
 		return fmt.Errorf("TIMEOUT: Machine %s timeouted during sorting of chunk %d", workerIP, chunkToSort.ID)
 	}
 
@@ -181,6 +191,7 @@ func ELECTION(conn net.Conn, ctx *utils.Context) error {
 	nodes := ctx.AllNodes()
 	vote := nodes[rand.Intn(len(nodes))]
 
+	log.Println(fmt.Sprintf("--> Voting for %s!", vote))
 	_, err := fmt.Fprintf(conn, "VOTE %s\n", vote)
 
 	return err
