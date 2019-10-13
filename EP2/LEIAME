@@ -1,5 +1,105 @@
-/* Made by:
- * Breno Helfstein Moura - 9790972
- * Matheus Barcellos de Castro Cunha - 11208238
-**/
+# EP2 Redes - Sistema distribuído
 
+## Nome: Breno Helfstein Moura
+## NUSP: 9790972
+
+## Nome: Matheus Barcellos de Castro Cunha
+## NUSP: 11208238
+
+- Linguagem:
+    A fim de facilitar o trabalho na produção do sistema, resolvemos utilizar a 
+linguagem de programação Go.
+
+- Instalando uma distribuição de Go:
+    https://golang.org/doc/install
+    Lembre-se que dependendo sistema deve-se configurar $GOROOT e $GOPATH
+
+- Conceito Mestre-Escravo:
+  Como esse EP temos que ordenar um arquivo de numeros, é um problema inerente a
+  um dado que somente uma maquina vai ter. A maquina que contem o arquivo a ser
+  ordenado é chamada de "Mestre", sendo as demais os "Escravos".
+
+- IP do Mestre:
+    O endereço de IP da máquina mestre será armazenado no arquivo "address.conf". Para
+inicializar a máquina como "master" o endereço de IP contido neste arquivo deve ser o 
+desta máquina e se deve passar o arquivo a ser ordenado na linha de comando.
+
+- Modos:
+    Antes de compilar o código, deve-se notar que ele pode assumir dois modos dife-
+rentes, um com o Arquivo a ser ordenado e outro sem o arquivo a ser ordenado. Caso
+se executa o arquivo com a lista de numeros a ser ordenado, e o endereço IP no
+arquivo address.conf é o mesmo da máquina, ela é execuada como mestre. Caso contrário
+ela será executada como escravo, e conecterá com o mestre para começar a trabalhar.
+
+- Compilar:
+    1. Para compilar os códigos fonte, o comando "make build" deve ser executado dentro
+    do diretório descompactado, na shell.
+    2. Após compilado, será gerado o arquivo executável com o nome "main".
+    
+- Executar (Master):
+    1. Mudar o endereço de IP contido no arquivo "address.conf" para o IP da máquina
+    que deseja ser assumida como "master". Pose se executar "Make setMasterIP IP={MASTERIP}"
+    para configurar o IP do mestre.
+    
+    2. Para executar, deve-se rodar o arquivo "main" com o argumento sendo o nome do 
+    arquivo a ser ordenado. Ex: "./main list.txt". No mestre se deve rodar com o arquivo
+    passado na minha de comando. Pode-se executar "Make runMaster" para ordenar a lista
+    em "list.txt". Caso queira executar em modo de debug use "Make runDebugMaster" 
+
+- Executar (Slave):
+    1. Mudar o endereço de IP contido no arquivo "address.conf" para o IP da máquina
+    que foi assumida como "master".
+    2. Para executar, basta rodar o arquivo "main" com o comando "./main". NO escravo
+    se deve rodar sem o arquivo na linha de comando. Pode-se executar "Make runSlave"
+    para executar ou "Make runDebugSlave" para executar em modo de debug.
+
+- Modo DEBUG:
+    Para entrar no modo debug, deve-se usar a flag "-d" no momento da execução 
+do programa. EX: "./main list.txt -d". Assim, será gerado o arquivo de log com
+o nome "eventLog.txt". Perceba que a flag -d deve ser passada sempre após a lista
+
+- Comandos implementados:
+    ENTER
+    LEADER
+    SORT
+    WORK
+    ENTERED
+    ELECTION
+    NODES
+    END
+    DEAD
+    PING
+
+- Resumo das implementações dos comandos:
+
+    *ENTER - Usado para o primeiro contato no início de uma nova conexão, passando
+    para a máquina conectada o IP do líder e adicionando aos registros a conexão de um
+    novo IP.
+
+    *LEADER {IP} - Usado para fazer a alteração do líder do sistema.
+
+    *SORT {CHUNKCOMPRIMIDO} - Usado para enviar pedaços do arquivo de ordenação entre "master"
+    e "slave". O chunk deve estar comprimido no formato json, com o vetor e o ID.
+
+    *WORK {IP}- Usado para por máquinas da rede para indicar um pedido de um pedaço de arquivo 
+    para ser ordenado. O lider faz o pedido para o IP.
+
+    *ENTERED {IP} - Usado para tomar conhecimento da entrada de uma máquina no sistema, adicionando
+    o seu IP a lista de IPs do sistema. 
+
+    *ELECTION - Usado para promover a escolha de um novo líder do sistema.
+
+    *NODES {LISTACOMPRIMIDA} - Usado para mandar um alteração nos registros de todos as máquinas
+    conectadas no sistema. A lista é enviada no formason json.
+
+    *END - Usado para anunciar e finalizar a ordenação.
+
+    *DEAD {IP} - Usado para reportar que uma máquina foi desconectada e removê-la da lista de IPs
+    ativos.
+
+    *PING - Usado para poder realizar o HeartBeat nas máquinas conectadas ao sistema, assim tendo
+    como resultado se alguma máquina foi desconectada. Retorna sempre PONG.
+
+- Observação final:
+    A máquina "master" deve estar rodando o processo antes de rodar qualquer outra 
+    maquina como "slave".

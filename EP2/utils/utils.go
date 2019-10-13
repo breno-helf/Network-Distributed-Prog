@@ -23,10 +23,10 @@ const BufferSize = 256
 const HandlerPort = ":8042"
 
 // HeartbeatTime defines Heartbeat() repeat time
-const HeartbeatTime = 45 * time.Second
+const HeartbeatTime = time.Minute
 
 // Timeout defines the timeout
-const Timeout = 30 * time.Second
+const Timeout = 45 * time.Second
 
 // GetRemoteIP extracts just the remoteIP from a connection
 func GetRemoteIP(conn net.Conn) string {
