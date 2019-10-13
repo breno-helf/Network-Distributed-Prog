@@ -90,9 +90,14 @@ func SORT(conn net.Conn, ctx *utils.Context, chunkStr string) error {
 
 // WORK will receive an IP that is requesting work.
 // If master will send an array for sorting
-func WORK(conn net.Conn, ctx *utils.Context, remoteIP string) error {
+func WORK(conn net.Conn, ctx *utils.Context, workerIP string) error {
 	if !ctx.IsMasterNode() {
 		return errors.New("Only master node can receive a WORK order")
+	}
+
+	remoteIP := utils.GetRemoteIP(conn)
+	if remoteIP != ctx.Leader() {
+		return errors.New("Only leader can send a WORK order")
 	}
 
 	chunkToSort, ok := <-ctx.Ch()
@@ -102,8 +107,8 @@ func WORK(conn net.Conn, ctx *utils.Context, remoteIP string) error {
 	}
 
 	ch := make(chan utils.Chunk, 1)
-	go func(ch chan utils.Chunk, remoteIP string) {
-		workerConn, err := net.Dial("tcp", remoteIP+utils.HandlerPort)
+	go func(ch chan utils.Chunk, workerIP string) {
+		workerConn, err := net.Dial("tcp", workerIP+utils.HandlerPort)
 		if err != nil {
 			log.Printf(utils.WORKERROR, err)
 			return
@@ -134,16 +139,18 @@ func WORK(conn net.Conn, ctx *utils.Context, remoteIP string) error {
 		sortedChunk, err := utils.UncompressChunk(tokens[1])
 
 		ch <- sortedChunk
-	}(ch, remoteIP)
+	}(ch, workerIP)
 
 	select {
 	case sortedChunk := <-ch:
 		utils.StoreChunk(sortedChunk)
 		ctx.Wg().Done()
-		log.Println(fmt.Sprintf("--> Chunk %d sorted by %s", sortedChunk.ID, remoteIP))
+		log.Println(fmt.Sprintf("--> Chunk %d sorted by %s", sortedChunk.ID, workerIP))
+		fmt.Fprintf(conn, "DONE %s\n", workerIP)
 	case <-time.After(5 * time.Second):
 		ctx.Ch() <- chunkToSort
-		return fmt.Errorf("TIMEOUT: Machine %s timeouted during sorting of chunk %d", remoteIP, chunkToSort.ID)
+		fmt.Fprintf(conn, "DONE %s\n", workerIP)
+		return fmt.Errorf("TIMEOUT: Machine %s timeouted during sorting of chunk %d", workerIP, chunkToSort.ID)
 	}
 
 	return nil

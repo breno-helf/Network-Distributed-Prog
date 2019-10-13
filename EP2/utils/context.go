@@ -9,6 +9,7 @@ type Context struct {
 	masterNode string
 	myIP       string
 	ch         chan Chunk
+	workLoad   map[string]chan bool
 	mu         sync.RWMutex
 	wg         sync.WaitGroup
 }
@@ -20,13 +21,19 @@ func NewContext(
 	masterNode string,
 	myIP string,
 	ch chan Chunk) *Context {
-	return &Context{
+	ctx := &Context{
 		nodes:      nodes,
 		leader:     leader,
 		masterNode: masterNode,
 		myIP:       myIP,
 		ch:         ch,
 	}
+	ctx.workLoad = make(map[string]chan bool)
+	for k := range ctx.nodes {
+		ctx.workLoad[k] = make(chan bool, 3)
+	}
+
+	return ctx
 }
 
 // AddNode add a new node to nodes
@@ -34,6 +41,7 @@ func (ctx *Context) AddNode(node string) {
 	ctx.mu.Lock()
 	defer ctx.mu.Unlock()
 	ctx.nodes[node] = true
+	ctx.workLoad[node] = make(chan bool, 3)
 }
 
 // RemoveNode remove a node from nodes
@@ -41,6 +49,7 @@ func (ctx *Context) RemoveNode(node string) {
 	ctx.mu.Lock()
 	defer ctx.mu.Unlock()
 	delete(ctx.nodes, node)
+	delete(ctx.workLoad, node)
 }
 
 // AllNodes returns a current snapshort from all nodes
@@ -52,6 +61,14 @@ func (ctx *Context) AllNodes() []string {
 		nodes = append(nodes, k)
 	}
 	return nodes
+}
+
+// WorkLoad returns the workLoad of a node
+func (ctx *Context) WorkLoad(node string) (chan bool, bool) {
+	ctx.mu.RLock()
+	defer ctx.mu.RUnlock()
+	ch, ok := ctx.workLoad[node]
+	return ch, ok
 }
 
 // Ch return the chunk channel

@@ -1,11 +1,13 @@
 package leader
 
 import (
+	"bufio"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
 	"net"
-	"time"
+	"strings"
 
 	"../utils"
 )
@@ -22,7 +24,6 @@ func Leader(ctx *utils.Context) {
 	rand.Shuffle(len(allNodes), func(i, j int) {
 		allNodes[i], allNodes[j] = allNodes[j], allNodes[i]
 	})
-	lastRequest := make(map[string]time.Time)
 
 	conn, err := net.Dial("tcp", ctx.MasterNode()+utils.HandlerPort)
 	defer conn.Close()
@@ -31,6 +32,8 @@ func Leader(ctx *utils.Context) {
 	}
 	fmt.Println("LEADER started connection", conn.LocalAddr(), conn.RemoteAddr())
 
+	go checkWorkDone(conn, ctx)
+
 	for ctx.IsLeader() {
 		if idx == len(allNodes) {
 			idx = 0
@@ -38,7 +41,7 @@ func Leader(ctx *utils.Context) {
 			rand.Shuffle(len(allNodes), func(i, j int) { allNodes[i], allNodes[j] = allNodes[j], allNodes[i] })
 		}
 
-		err := askWorkForNode(conn, allNodes[idx], lastRequest)
+		err := askWorkForNode(conn, ctx, allNodes[idx])
 		if err != nil {
 			log.Printf(utils.LEADERERROR, err)
 		}
@@ -46,15 +49,58 @@ func Leader(ctx *utils.Context) {
 	}
 }
 
-func askWorkForNode(conn net.Conn, remoteIP string, lastRequest map[string]time.Time) error {
-	_, ok := lastRequest[remoteIP]
-	if ok {
-		diff := time.Since(lastRequest[remoteIP])
-		if diff < 2*time.Second {
-			time.Sleep(time.Millisecond*10 - diff)
+func checkWorkDone(conn net.Conn, ctx *utils.Context) {
+	reader := bufio.NewReader(conn)
+	for ctx.IsLeader() {
+		msg, err := reader.ReadString('\n')
+		if err != nil {
+			break
+		}
+
+		tokens := strings.Fields(msg)
+		if tokens[0] == "DONE" {
+			err = DONE(conn, ctx, tokens[1])
+			if err != nil {
+				log.Printf(utils.LEADERERROR, err)
+			}
+		} else {
+			log.Printf(utils.LEADERERROR, fmt.Errorf("Can't handle command %s on leader port", tokens[0]))
 		}
 	}
-	lastRequest[remoteIP] = time.Now()
-	_, err := fmt.Fprintf(conn, "WORK %s\n", remoteIP)
-	return err
+}
+
+func askWorkForNode(conn net.Conn, ctx *utils.Context, remoteIP string) error {
+	workLoad, ok := ctx.WorkLoad(remoteIP)
+	if !ok {
+		return fmt.Errorf("Node %s is not on the network anymore", remoteIP)
+	}
+
+	select {
+	case workLoad <- true:
+		_, err := fmt.Fprintf(conn, "WORK %s\n", remoteIP)
+		return err
+	default:
+		// Node is with work load full
+		return nil
+	}
+}
+
+// DONE will notify master that a node finished sorting
+func DONE(conn net.Conn, ctx *utils.Context, freeNode string) error {
+	remoteIP := utils.GetRemoteIP(conn)
+	if remoteIP != ctx.MasterNode() {
+		return errors.New("Only master can inform of sorting done")
+	}
+
+	if !ctx.IsLeader() {
+		return errors.New("Only leader can recognizes that a job is done")
+	}
+
+	workLoad, ok := ctx.WorkLoad(freeNode)
+	if !ok {
+		return fmt.Errorf("Node %s was removed from network", freeNode)
+	}
+	<-workLoad
+
+	return nil
 }

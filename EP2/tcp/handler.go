@@ -79,10 +79,9 @@ func handleCommand(conn net.Conn, msg string, ctx *utils.Context, ch chan bool) 
 		if err != nil {
 			return err
 		}
-
 		// case "DIED":
 	default:
-		return fmt.Errorf("Can't handle message '%s'", msg)
+		return fmt.Errorf("Can't handle message '%s' on port %s", msg, utils.HandlerPort)
 	}
 
 	return nil
