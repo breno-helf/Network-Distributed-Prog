@@ -31,7 +31,6 @@ func generateChunks(ctx *utils.Context, filename string, ch chan<- utils.Chunk, 
 	}
 	defer f.Close()
 
-	ctx.Wg().Add(numChunks)
 	fscanner := bufio.NewScanner(f)
 	currentSlice := make([]int, 0)
 	currentID := 0
@@ -209,6 +208,7 @@ func Master(listFilename string, myIP string) {
 	chunkSize := defineChunkSize(lineNumber)
 	numChunks := int(math.Ceil(float64(lineNumber) / float64(chunkSize)))
 	ctx := utils.NewContext(map[string]bool{myIP: true}, myIP, myIP, myIP, chunksChannel)
+	ctx.Wg().Add(numChunks)
 
 	go generateChunks(ctx, listFilename, chunksChannel, chunkSize, numChunks)
 

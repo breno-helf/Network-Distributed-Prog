@@ -26,4 +26,4 @@ setMasterIP:
 
 clean:
 	rm -rf tmp/
-	rm *~ eventLog.txt 
+	rm *~ eventLog.txt sorted.txt
