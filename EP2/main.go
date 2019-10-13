@@ -9,6 +9,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	"./eventlog"
@@ -23,17 +24,18 @@ func main() {
 	var listFilename string
 
 	rand.Seed(time.Now().UTC().UnixNano())
-	initialMachine, err := ioutil.ReadFile("address.conf")
+	addressConfText, err := ioutil.ReadFile("address.conf")
 	if err != nil {
 		log.Fatal(utils.MAINERROR, err)
 	}
 
+	initialMachine := strings.TrimSpace(string(addressConfText))
 	myIP, err := utils.GetMyIP()
 	if err != nil {
 		log.Fatal(utils.MAINERROR, err)
 	}
 
-	if len(os.Args) > 1 && string(initialMachine) == myIP {
+	if len(os.Args) > 1 && initialMachine == myIP {
 		masterNode = true
 		listFilename = os.Args[1]
 	}
@@ -47,6 +49,6 @@ func main() {
 	if masterNode {
 		master.Master(listFilename, myIP)
 	} else {
-		slave.Slave(string(initialMachine), myIP)
+		slave.Slave(initialMachine, myIP)
 	}
 }
