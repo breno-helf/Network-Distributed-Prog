@@ -11,6 +11,7 @@ type Context struct {
 	ch         chan Chunk
 	deadLeader chan bool
 	workLoad   map[string]chan bool
+	finalSort  bool
 	mu         sync.RWMutex
 	wg         sync.WaitGroup
 }
@@ -28,6 +29,7 @@ func NewContext(
 		masterNode: masterNode,
 		myIP:       myIP,
 		ch:         ch,
+		finalSort:  false,
 	}
 	ctx.workLoad = make(map[string]chan bool)
 	for k := range ctx.nodes {
@@ -108,6 +110,20 @@ func (ctx *Context) IsMasterNode() bool {
 	ctx.mu.RLock()
 	defer ctx.mu.RUnlock()
 	return ctx.masterNode == ctx.myIP
+}
+
+// SetFinalSort sets the finalSort variable
+func (ctx *Context) SetFinalSort(finalSort bool) {
+	ctx.mu.Lock()
+	defer ctx.mu.Unlock()
+	ctx.finalSort = finalSort
+}
+
+// FinalSort checks if we are in final sort
+func (ctx *Context) FinalSort() bool {
+	ctx.mu.RLock()
+	defer ctx.mu.RUnlock()
+	return ctx.finalSort
 }
 
 // IsLeader return if it is the leader

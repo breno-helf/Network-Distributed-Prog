@@ -96,6 +96,10 @@ func defineChunkSize(lineNumber int) int {
 }
 
 func election(ctx *utils.Context) {
+	if ctx.FinalSort() {
+		// FinalSort no election needed
+		return
+	}
 	var wg sync.WaitGroup
 	nodes := ctx.AllNodes()
 	ch := make(chan bool, 5)
@@ -173,7 +177,7 @@ func election(ctx *utils.Context) {
 }
 
 func keepElecting(ctx *utils.Context) {
-	for {
+	for !ctx.FinalSort() {
 		select {
 		case <-time.After(3 * time.Minute):
 			election(ctx)
@@ -185,6 +189,8 @@ func keepElecting(ctx *utils.Context) {
 
 func waitForFinalSort(ctx *utils.Context, maxChunk int) {
 	ctx.Wg().Wait()
+	ctx.SetFinalSort(true)
+	utils.Broadcast(ctx, "LEADER NOLEADER\n")
 	err := utils.SortStoredChunks(maxChunk)
 	if err != nil {
 		log.Fatal(utils.MASTERERROR, err)
