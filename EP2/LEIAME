@@ -100,6 +100,16 @@ o nome "eventLog.txt". Perceba que a flag -d deve ser passada sempre após a lis
     *PING - Usado para poder realizar o HeartBeat nas máquinas conectadas ao sistema, assim tendo
     como resultado se alguma máquina foi desconectada. Retorna sempre PONG.
 
-- Observação final:
-    A máquina "master" deve estar rodando o processo antes de rodar qualquer outra 
+- Observação:
+    - A máquina "master" deve estar rodando o processo antes de rodar qualquer outra 
     maquina como "slave".
+    - Algumas requests requerem respostas de forma sincrona (Por exemplo WORK sempre 
+    responde DONE, SORT responde SORTED, PING responde PONG e ELECTION espera VOTE como resposta)
+
+- Constantes Importantes:
+    - Heartbeat é feito a cada 1 minuto
+    - O timeout de uma request é 45s
+    - Cada Máquina resolve 2 Chunks por vez
+    - O tamanho máximo de um Chunk é 10^6 e o minimo é 10^1. Por default o chunk é de 1% do tamanho
+    array
+    - A porta que recebe os requests em cada máquina é a porta 8042

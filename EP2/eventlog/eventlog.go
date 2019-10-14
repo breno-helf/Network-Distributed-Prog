@@ -1,5 +1,9 @@
 package eventlog
 
+/* Made by:
+ * Breno Helfstein Moura - 9790972
+ * Matheus Barcellos de Castro Cunha - 11208238
+**/
 import (
 	"fmt"
 	"log"
@@ -29,7 +33,7 @@ func CreateEventLogger() error {
 		logfd, err = os.Create(logFile)
 		eventLogger = log.New(logfd, "Event Logger: ", log.LstdFlags)
 		log.SetOutput(logfd)
-		log.SetPrefix("Error Log: ")
+		log.SetPrefix("Error Logger: ")
 		return err
 	}
 

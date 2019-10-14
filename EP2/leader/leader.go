@@ -1,5 +1,9 @@
 package leader
 
+/* Made by:
+ * Breno Helfstein Moura - 9790972
+ * Matheus Barcellos de Castro Cunha - 11208238
+**/
 import (
 	"bufio"
 	"errors"
@@ -11,11 +15,6 @@ import (
 
 	"../utils"
 )
-
-/* Made by:
- * Breno Helfstein Moura - 9790972
- * Matheus Barcellos de Castro Cunha - 11208238
-**/
 
 // Leader is for the node to act as Leader
 func Leader(ctx *utils.Context) {
