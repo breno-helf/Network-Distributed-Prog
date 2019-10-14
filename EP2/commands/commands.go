@@ -150,7 +150,7 @@ func WORK(conn net.Conn, ctx *utils.Context, workerIP string) error {
 		utils.StoreChunk(sortedChunk)
 		ctx.Wg().Done()
 		fmt.Fprintf(conn, "DONE %s\n", workerIP)
-		log.Printf("Machine %s ordered chunk %d.", workerIP, sortedChunk.ID)
+		eventlog.LogEvent(fmt.Sprintf("Machine %s ordered chunk %d.", workerIP, sortedChunk.ID))
 	case <-time.After(utils.Timeout):
 		ctx.Ch() <- chunkToSort
 		fmt.Fprintf(conn, "DONE %s\n", workerIP)

@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"log"
 	"os"
-
-	"../utils"
 )
 
 const logFile = "eventLog.txt"
 
 var logmode = false
 var logfd *os.File
+var eventLogger *log.Logger
 
 // ActivateLogMode activates the log mode
 func ActivateLogMode() {
@@ -28,6 +27,7 @@ func CreateEventLogger() error {
 	if logmode {
 		var err error
 		logfd, err = os.Create(logFile)
+		eventLogger = log.New(logfd, "Event Logger: ", log.LstdFlags)
 		return err
 	}
 
@@ -37,53 +37,41 @@ func CreateEventLogger() error {
 // EventNewNode writes in the event logger that we have a new node
 func EventNewNode(node string) {
 	if logmode {
-		msg := fmt.Sprintf("New node entered the system [%s]\n", node)
-		_, err := logfd.WriteString(msg)
-		if err != nil {
-			log.Printf(utils.LOGERROR, err)
-		}
+		eventLogger.Printf("New node entered the system [%s]\n", node)
 	}
 }
 
 // EventDeadNode writes in the event logger that a node died
 func EventDeadNode(node string) {
 	if logmode {
-		msg := fmt.Sprintf("A node died [%s]\n", node)
-		_, err := logfd.WriteString(msg)
-		if err != nil {
-			log.Printf(utils.LOGERROR, err)
-		}
+		eventLogger.Printf("A node died [%s]\n", node)
 	}
 }
 
 // EventElectingLeader writes in the event logger that we are electing a new leader
 func EventElectingLeader() {
 	if logmode {
-		_, err := logfd.WriteString(("Electing new leader\n"))
-		if err != nil {
-			log.Printf(utils.LOGERROR, err)
-		}
+		eventLogger.Print("Electing new leader\n")
 	}
 }
 
 // EventLeaderElected writes in the event logger that we elected a new leader
 func EventLeaderElected(node string) {
 	if logmode {
-		msg := fmt.Sprintf("We have elected a new leader [%s]\n", node)
-		_, err := logfd.WriteString(msg)
-		if err != nil {
-			log.Printf(utils.LOGERROR, err)
-		}
+		eventLogger.Printf("We have elected a new leader [%s]\n", node)
 	}
 }
 
 // EventFinishSorting writes in the event logger that we finished sorting
 func EventFinishSorting(masterNode string) {
 	if logmode {
-		msg := fmt.Sprintf("We have finished sorting, we can find the array in [%s]\n", masterNode)
-		_, err := logfd.WriteString(msg)
-		if err != nil {
-			log.Printf(utils.LOGERROR, err)
-		}
+		eventLogger.Printf("We have finished sorting, we can find the array in [%s]\n", masterNode)
+	}
+}
+
+// LogEvent log any event not specified
+func LogEvent(msg string) {
+	if logmode {
+		eventLogger.Print(msg)
 	}
 }

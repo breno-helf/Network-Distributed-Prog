@@ -188,7 +188,7 @@ func waitForFinalSort(ctx *utils.Context, maxChunk int) {
 	ctx.SetFinalSort(true)
 	utils.Broadcast(ctx, "LEADER FINALSORT\n")
 	close(ctx.Ch())
-	log.Println("We are in final sort, there is no leader")
+	eventlog.LogEvent("We are in final sort, there is no leader")
 	err := utils.SortStoredChunks(maxChunk)
 	if err != nil {
 		log.Fatal(utils.MASTERERROR, err)
