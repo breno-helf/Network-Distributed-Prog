@@ -28,6 +28,8 @@ func CreateEventLogger() error {
 		var err error
 		logfd, err = os.Create(logFile)
 		eventLogger = log.New(logfd, "Event Logger: ", log.LstdFlags)
+		log.SetOutput(logfd)
+		log.SetPrefix("Error Log: ")
 		return err
 	}
 

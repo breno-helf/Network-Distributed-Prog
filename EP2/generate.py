@@ -1,3 +1,4 @@
+# Gera uma lista aleatoria com 100 milhoes de inteiros
 import random
 
 F = open('biglist.txt', 'w+')
