@@ -20,7 +20,7 @@ import (
 
 func main() {
 	// Means that I have the file to be sorted and have to initialize the connections
-	masterNode := false
+	masterNode := true
 	var listFilename string
 
 	rand.Seed(time.Now().UTC().UnixNano())
