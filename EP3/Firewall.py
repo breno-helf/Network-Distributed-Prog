@@ -1,3 +1,8 @@
+##
+# Breno Helfstein Moura - 9790972
+# Matheus Barcellos de Castro Cunha - 11208238
+##
+
 # Copyright 2012 James McCauley
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,9 +34,9 @@ from pox.lib.addresses import IPAddr, IPAddr6, EthAddr
 log = core.getLogger()
 
 SRC_IP_ADDRESS = None #IPAddr("10.0.0.2")
-DST_IP_ADDRESS = None #IPAddr("10.0.0.2")
+DST_IP_ADDRESS = None #IPAddr("10.0.0.1")
 PORT = None #5001
-PROTOCOL_TYPE = None #"udp"  
+PROTOCOL_TYPE = None #"tcp"  
 
 class Tutorial (object):
   """
@@ -49,8 +54,6 @@ class Tutorial (object):
     # Use this table to keep track of which ethernet address is on
     # which switch port (keys are MACs, values are ports).
     self.mac_to_port = {}
-    self.iparp = {}
-
 
   def resend_packet (self, packet_in, out_port):
     """
@@ -86,31 +89,45 @@ class Tutorial (object):
 
 
   def act_like_switch (self, packet, packet_in):
+    """
+    Implement switch-like behavior.
+    """
 
+    # Here's some psuedocode to start you off implementing a learning
+    # switch.  You'll need to rewrite it as real Python code.
+    # Learn the port for the source MAC
     self.mac_to_port[packet.src] = packet_in.in_port
-
-    # if(str(packet.dst) == "ff:ff:ff:ff:ff:ff"):
-    #   if packet.src in self.mac_to_port:
-    #     if(self.is_mac_ip(SRC_IP_ADDRESS, packet.src)):
-    #       return
-    #     else:
-    #       self.resend_packet()
-    # print("DST: " + str(packet.dst))
-    # print(packet)
 
     if packet.dst in self.mac_to_port:
 
-      # log.debug("Installing flow. Source: " + str(packet.src) + ". Destination: " + str(packet.dst) + ". Port: "+ str(self.mac_to_port[packet.dst]))
+      # Send packet out the associated port
+      # Here's some psuedocode to start you off implementing a learning
+      # switch.  You'll need to rewrite it as real Python code.
 
+      # self.resend_packet(packet_in, self.mac_to_port[packet.dst])
+
+      # Once you have the above working, try pushing a flow entry
+      # instead of resending the packet (comment out the above and
+      # uncomment and complete the below.)
+      log.debug("Installing flow...")
+      # Maybe the log statement should have source/destination/port?
+
+      #msg.match = of.ofp_match.from_packet(packet)
       msg = of.ofp_flow_mod()
+      ## Set fields to match received packet
       msg.match = of.ofp_match.from_packet(packet)
+      #
+      #< Set other fields of flow_mod (timeouts? buffer_id?) >
+      #
+      #< Add an output action, and send -- similar to resend_packet() >
       msg.idle_timeout = 10
       msg.buffer_id = packet_in.buffer_id
       msg.actions.append(of.ofp_action_output(port = self.mac_to_port[packet.dst]))
       self.connection.send(msg)
 
     else:
-      # print (str(packet.dst) + " not known, resend to everybody")
+      # Flood the packet out everything but the input port
+      # This part looks familiar, right?
       self.resend_packet(packet_in, of.OFPP_ALL)
 
   def handle_IP_packet (self, packet):
@@ -119,16 +136,17 @@ class Tutorial (object):
       # This packet isn't IP!
       return 0
 
-    # self.iparp[ip.srcip] = packet.src
-    # self.iparp[ip.dstip] = packet.dst
-    if SRC_IP_ADDRESS != None:
-      if ip.srcip == SRC_IP_ADDRESS:
-        return 1
-    if DST_IP_ADDRESS != None:
-      if ip.dstip == DST_IP_ADDRESS:
-        return 1
-    print ("Source IP:"), ip.srcip
-    print ("Destin IP:"), ip.dstip
+    if SRC_IP_ADDRESS != None and DST_IP_ADDRESS != None:
+        if ip.dstip == DST_IP_ADDRESS and ip.srcip == SRC_IP_ADDRESS:
+          print ("IP_FILTER")
+          print ("Source IP:"), ip.srcip
+          print ("Destin IP:"), ip.dstip
+          return 1
+    if ip.srcip == DST_IP_ADDRESS and ip.dstip == SRC_IP_ADDRESS:
+          print ("IP_FILTER")
+          print ("Source IP:"), ip.srcip
+          print ("Destin IP:"), ip.dstip
+          return 1
     return 0
 
   def check_port(self, packet):
@@ -149,7 +167,8 @@ class Tutorial (object):
     ip = packet.find(PROTOCOL_TYPE)
     if ip is None:
       # This packet isn't IP!
-      return 0 
+      return 0
+    print("PROTOCOL_FILTER") 
     return 1
 
   def _handle_PacketIn (self, event):
@@ -166,30 +185,10 @@ class Tutorial (object):
 
     packet_in = event.ofp # The actual ofp_packet_in message.
 
-    # msg = of.ofp_packet_out()
-    # msg.data = packet_in
-    # print(msg)
-    # print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-    # Comment out the following line and uncomment the one after
-    # when starting the exercise.
-    # self.act_like_hub(packet, packet_in)
-    self.check_port(packet)
-    if self.Protocol_Type(packet) == 1:
-      print("PROTOCOL_FILTER")
-    if self.handle_IP_packet(packet) == 0:
-      # if self.is_mac_ip(SRC_IP_ADDRESS, packet.src) == 0:
-      #   if self.is_mac_ip(DST_IP_ADDRESS, packet.dst) == 0:
-      #     print("PASSOU")
-      #     print ("SRC IP:"), packet.src
-      #     print ("DST IP:"), packet.dst 
+    if self.check_port(packet) == 0 and self.Protocol_Type(packet) == 0 and self.handle_IP_packet(packet) == 0:
       self.act_like_switch(packet, packet_in)
-
     
-    match = of.ofp_match.from_packet(packet)
-    print (match.show())
     print("------------------------------------------------------")
-
-
 
 def launch ():
   """
