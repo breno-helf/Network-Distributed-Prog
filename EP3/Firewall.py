@@ -137,16 +137,10 @@ class Tutorial (object):
       return 0
 
     if SRC_IP_ADDRESS != None and DST_IP_ADDRESS != None:
-        if ip.dstip == DST_IP_ADDRESS and ip.srcip == SRC_IP_ADDRESS:
-          print ("IP_FILTER")
-          print ("Source IP:"), ip.srcip
-          print ("Destin IP:"), ip.dstip
-          return 1
-    if ip.srcip == DST_IP_ADDRESS and ip.dstip == SRC_IP_ADDRESS:
-          print ("IP_FILTER")
-          print ("Source IP:"), ip.srcip
-          print ("Destin IP:"), ip.dstip
-          return 1
+      if ip.dstip == DST_IP_ADDRESS and ip.srcip == SRC_IP_ADDRESS:
+        return 1
+      if ip.srcip == DST_IP_ADDRESS and ip.dstip == SRC_IP_ADDRESS:
+        return 1
     return 0
 
   def check_port(self, packet):
@@ -154,10 +148,8 @@ class Tutorial (object):
       return 0
     match = of.ofp_match.from_packet(packet)
     if match.tp_dst == PORT :
-      print("PORT_FILTER")
       return 1
     if match.tp_src == PORT :
-      print("PORT_FILTER")
       return 1
     return 0  
 
@@ -168,7 +160,6 @@ class Tutorial (object):
     if ip is None:
       # This packet isn't IP!
       return 0
-    print("PROTOCOL_FILTER") 
     return 1
 
   def _handle_PacketIn (self, event):
@@ -188,8 +179,6 @@ class Tutorial (object):
     if self.check_port(packet) == 0 and self.Protocol_Type(packet) == 0 and self.handle_IP_packet(packet) == 0:
       self.act_like_switch(packet, packet_in)
     
-    print("------------------------------------------------------")
-
 def launch ():
   """
   Starts the component
