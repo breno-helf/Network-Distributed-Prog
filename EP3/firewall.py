@@ -1,3 +1,8 @@
+##
+# Breno Helfstein Moura - 9790972
+# Matheus Barcellos de Castro Cunha - 11208238
+##
+
 # Copyright 2012 James McCauley
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,17 +19,24 @@
 
 """
 This component is for use with the OpenFlow tutorial.
+
 It acts as a simple hub, but can be modified to act like an L2
 learning switch.
+
 It's roughly similar to the one Brandon Heller did for NOX.
 """
 
 from pox.core import core
+import pox.lib.packet as pkt
 import pox.openflow.libopenflow_01 as of
+from pox.lib.addresses import IPAddr, IPAddr6, EthAddr
 
 log = core.getLogger()
 
-
+SRC_IP_ADDRESS = None #IPAddr("10.0.0.2")
+DST_IP_ADDRESS = None #IPAddr("10.0.0.1")
+PORT = None #20202
+PROTOCOL_TYPE = None #"tcp"  
 
 class Tutorial (object):
   """
@@ -42,7 +54,6 @@ class Tutorial (object):
     # Use this table to keep track of which ethernet address is on
     # which switch port (keys are MACs, values are ports).
     self.mac_to_port = {}
-
 
   def resend_packet (self, packet_in, out_port):
     """
@@ -118,6 +129,37 @@ class Tutorial (object):
       # This part looks familiar, right?
       self.resend_packet(packet_in, of.OFPP_ALL)
 
+  def handle_IP_packet (self, packet):
+    ip = packet.find('ipv4')
+    if ip is None:
+      # This packet isn't IP!
+      return 0
+
+    if SRC_IP_ADDRESS != None and DST_IP_ADDRESS != None:
+      if ip.dstip == DST_IP_ADDRESS and ip.srcip == SRC_IP_ADDRESS:
+        return 1
+      if ip.srcip == DST_IP_ADDRESS and ip.dstip == SRC_IP_ADDRESS:
+        return 1
+    return 0
+
+  def check_port(self, packet):
+    match = of.ofp_match.from_packet(packet)
+    if PORT == None:
+      return 0
+    if match.tp_dst == PORT :
+      return 1
+    if match.tp_src == PORT :
+      return 1
+    return 0  
+
+  def Protocol_Type (self, packet):
+    if PROTOCOL_TYPE == None:
+      return 0
+    ip = packet.find(PROTOCOL_TYPE)
+    if ip is None:
+      # This packet isn't IP!
+      return 0
+    return 1
 
   def _handle_PacketIn (self, event):
     """
@@ -125,19 +167,17 @@ class Tutorial (object):
     """
 
     packet = event.parsed # This is the parsed packet data.
+
+
     if not packet.parsed:
       log.warning("Ignoring incomplete packet")
       return
 
     packet_in = event.ofp # The actual ofp_packet_in message.
 
-    # Comment out the following line and uncomment the one after
-    # when starting the exercise.
-    # self.act_like_hub(packet, packet_in)
-    self.act_like_switch(packet, packet_in)
-
-
-
+    if self.check_port(packet) == 0 and self.Protocol_Type(packet) == 0 and self.handle_IP_packet(packet) == 0:
+      self.act_like_switch(packet, packet_in)
+    
 def launch ():
   """
   Starts the component
