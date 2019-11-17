@@ -1,0 +1,73 @@
+EP3 Redes - Sistema distribuído
+
+Nome: Breno Helfstein Moura
+NUSP: 9790972
+
+Nome: Matheus Barcellos de Castro Cunha
+NUSP: 11208238
+
+
+-Passar regras "firewall.py":
+
+    *Bloqueio por IP:
+    	Para bloquear pacotes por IP, dois endereços de IP devem
+    	ser passados dentro do arquivo "firewall.py" nas linhas
+    	36 e 37 nas variáveis SRC_IP_ADDRESS e DST_IP_ADDRESS de-
+    	tro das aspas da função "IPAddr()", por Exemplo:
+    
+    		SRC_IP_ADDRESS = IPAddr("10.0.0.2")
+    		DST_IP_ADDRESS = IPAddr("10.0.0.1")
+
+    	Neste exemplo todos os pacotes que tem como endereço IP
+    	de destino e origem os endereços "10.0.0.1" e "10.0.0.2"
+    	não serao repassados.
+
+    	Caso não queira bloquear nenhum IP, deve ser atribuído
+    	"None" as variáveis SRC_IP_ADDRESS e DST_IP_ADDRESS, por
+    	exemplo:
+
+    		SRC_IP_ADDRESS = None
+    		DST_IP_ADDRESS = None
+
+    	Neste caso nenhum bloqueio será feito levando em conta os
+    	endereços de IP de origem ou destino do pacote.
+	
+    *Bloqueio por Porta:
+    	Para bloquear pacotes pela porta de origem ou destino do pa-
+    	cote, deve-se especificar a porta desejada na linha 38 do ar-
+    	quivo "firewall.py" na variavel "PORT". Por exemplo:
+    
+    		PORT = 5001
+
+    	Neste exemplo todos os pacotes que tem como a porta de origem
+    	ou destino a porta 5001 serão bloqueados.
+
+    	Caso não queira bloquear nenhum pacote por sua porta, deve ser
+    	atribuído "None" a variável "PORT". Por exemplo:
+
+    		PORT = None
+
+    	Neste caso nenhum bloqueio será feito levando em conta a porta
+    	de origem ou destino do pacote.    
+
+    *Bloqueio por Protocolo:
+    	Para bloquear pacotes pelo seu protocolo, deve-se especificar
+    	o protocolo desejado, dentro de aspas e em minúsculo, na linha
+    	39 do arquivo"firewall.py" na variavel "PROTOCOL_TYPE". Por exemplo:
+    
+    		PROTOCOL_TYPE = "tcp"
+
+    	Neste exemplo todos os pacotes que usam o protocolo TCP serão
+    	bloqueados.
+
+    	Caso não queira bloquear nenhum pacote pelo seu protocolo, deve
+    	ser atribuído "None" a variável "PROTOCOL_TYPE". Por exemplo:
+
+        	PROTOCOL_TYPE = None
+
+        Neste caso nenhum bloqueio será feito levando em conta o protocolo
+        do pacote.
+
+
+
+

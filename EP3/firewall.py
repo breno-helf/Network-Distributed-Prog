@@ -35,7 +35,7 @@ log = core.getLogger()
 
 SRC_IP_ADDRESS = None #IPAddr("10.0.0.2")
 DST_IP_ADDRESS = None #IPAddr("10.0.0.1")
-PORT = None #5001
+PORT = None #20202
 PROTOCOL_TYPE = None #"tcp"  
 
 class Tutorial (object):
@@ -109,10 +109,9 @@ class Tutorial (object):
       # Once you have the above working, try pushing a flow entry
       # instead of resending the packet (comment out the above and
       # uncomment and complete the below.)
-      log.debug("Installing flow...")
+      # log.debug("Installing flow...")
       # Maybe the log statement should have source/destination/port?
 
-      #msg.match = of.ofp_match.from_packet(packet)
       msg = of.ofp_flow_mod()
       ## Set fields to match received packet
       msg.match = of.ofp_match.from_packet(packet)
@@ -144,9 +143,9 @@ class Tutorial (object):
     return 0
 
   def check_port(self, packet):
+    match = of.ofp_match.from_packet(packet)
     if PORT == None:
       return 0
-    match = of.ofp_match.from_packet(packet)
     if match.tp_dst == PORT :
       return 1
     if match.tp_src == PORT :

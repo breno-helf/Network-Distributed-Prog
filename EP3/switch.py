@@ -14,10 +14,8 @@
 
 """
 This component is for use with the OpenFlow tutorial.
-
 It acts as a simple hub, but can be modified to act like an L2
 learning switch.
-
 It's roughly similar to the one Brandon Heller did for NOX.
 """
 
@@ -62,6 +60,7 @@ class Tutorial (object):
     # Send message to switch
     self.connection.send(msg)
 
+
   def act_like_hub (self, packet, packet_in):
     """
     Implement hub-like behavior -- send all packets to all ports besides
@@ -70,8 +69,7 @@ class Tutorial (object):
 
     # We want to output to all ports -- we do that using the special
     # OFPP_ALL port as the output port.  (We could have also used
-    # OFPP_FLOOD.)    
-
+    # OFPP_FLOOD.)
     self.resend_packet(packet_in, of.OFPP_ALL)
 
     # Note that if we didn't get a valid buffer_id, a slightly better
@@ -83,29 +81,43 @@ class Tutorial (object):
     """
     Implement switch-like behavior.
     """
+
     # Here's some psuedocode to start you off implementing a learning
     # switch.  You'll need to rewrite it as real Python code.
-
+    # Learn the port for the source MAC
     self.mac_to_port[packet.src] = packet_in.in_port
 
-    # Learn the port for the source MAC
     if packet.dst in self.mac_to_port:
 
-      log.debug("Installing flow. Source: " + str(packet.src) + ". Destination: " + str(packet.dst) + ". Port: "+ str(self.mac_to_port[packet.dst]))
+      # Send packet out the associated port
+      # Here's some psuedocode to start you off implementing a learning
+      # switch.  You'll need to rewrite it as real Python code.
 
-      ## Set fields to match received packet
+      # self.resend_packet(packet_in, self.mac_to_port[packet.dst])
+
+      # Once you have the above working, try pushing a flow entry
+      # instead of resending the packet (comment out the above and
+      # uncomment and complete the below.)
+      # log.debug("Installing flow...")
+      # Maybe the log statement should have source/destination/port?
+
       msg = of.ofp_flow_mod()
+      ## Set fields to match received packet
       msg.match = of.ofp_match.from_packet(packet)
-      msg.idle_timeout = 5
+      #
+      #< Set other fields of flow_mod (timeouts? buffer_id?) >
+      #
+      #< Add an output action, and send -- similar to resend_packet() >
+      msg.idle_timeout = 10
       msg.buffer_id = packet_in.buffer_id
       msg.actions.append(of.ofp_action_output(port = self.mac_to_port[packet.dst]))
       self.connection.send(msg)
 
     else:
-      print (str(packet.dst) + " not known, resend to everybody")
-      self.resend_packet(packet_in, of.OFPP_ALL)
       # Flood the packet out everything but the input port
       # This part looks familiar, right?
+      self.resend_packet(packet_in, of.OFPP_ALL)
+
 
   def _handle_PacketIn (self, event):
     """
